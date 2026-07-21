@@ -1,0 +1,31 @@
+// 被覆制御シミュレータのデータモデル
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 実行1回分のシミュレーション。パラメータと結果をまとめて保存する
+model Run {
+  id        String   @id @default(cuid())
+  title     String
+  /// 公開URLで共有するかどうか
+  isPublic  Boolean  @default(false)
+  /// ロボット台数
+  agents    Int
+  /// シミュレーションのステップ数
+  steps     Int
+  /// 重要度関数Φの生成条件（エッジ検出の種類・閾値など）を JSON で保持する
+  phiConfig Json
+  /// 各ステップの配置履歴・評価値。スキーマが固まるまでは JSON で持つ
+  result    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
