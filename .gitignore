@@ -44,3 +44,6 @@ next-env.d.ts
 
 # env の雛形は共有したいので追跡する
 !.env.example
+
+# 開発用ローカル PostgreSQL のデータ（npm run db:local）
+/.local-db
