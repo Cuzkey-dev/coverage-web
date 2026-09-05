@@ -120,6 +120,7 @@ npm run dev
 | `npm run db:local` | 開発用ローカル PostgreSQL（`postgresql://postgres:password@127.0.0.1:54329/coverage`） |
 | `npm run db:push` | スキーマを DB へ反映 |
 | `npm run db:seed` | お手本の実行を DB に入れる（何度流しても増えない） |
+| `npm run db:setup` | `db:push` と `db:seed` をまとめて実行（公開先の DB を用意するとき） |
 | `npm run db:studio` | Prisma Studio でデータを確認 |
 
 ## 公開する（Vercel + Neon）
@@ -128,8 +129,8 @@ npm run dev
    サーバーレスから繋ぐので、ホスト名に `-pooler` が入った**プール側**の URL を使う
    （1 リクエストごとに接続を張るため、直結だと接続数を使い切る）。
    レイテンシを詰めるなら、Vercel のリージョンと近い場所に作る。
-2. **スキーマを流す。** 手元の `.env` の `DATABASE_URL` をその URL にして `npm run db:push`、
-   続けて `npm run db:seed`（お手本を入れる）。
+2. **スキーマとお手本を流す。** 手元の `.env` の `DATABASE_URL` をその URL に差し替えて、
+   `npm run db:setup`（スキーマ反映とお手本の投入をまとめて行う）。
 3. **Vercel に載せる。** GitHub リポジトリを Import し、環境変数 `DATABASE_URL` に同じ URL を設定する。
    ビルド設定は既定のままでよい（`postinstall` の `prisma generate` が走る）。
 4. **確かめる。** `https://<デプロイ先>/api/health` が
