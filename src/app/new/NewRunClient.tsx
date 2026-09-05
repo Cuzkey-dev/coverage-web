@@ -13,6 +13,7 @@ import {
 import { saveRun } from "@/app/actions";
 import { SimulationCanvas } from "@/components/SimulationCanvas";
 import { SimulationPlayer } from "@/components/SimulationPlayer";
+import { getOwnerToken } from "@/lib/coverage/ownerToken";
 import { METHOD_LABELS } from "@/lib/coverage/params";
 import {
   DEFAULT_PHI_CONFIG,
@@ -25,6 +26,7 @@ import {
   type PhiConfig,
 } from "@/lib/coverage/phi";
 import { buildRunResult, type StoredFrame } from "@/lib/coverage/runResult";
+import { createSampleImage, SAMPLE_IMAGE_NAME } from "@/lib/coverage/sampleImage";
 import {
   DEFAULT_SIMULATION_OPTIONS,
   MAX_AGENTS,
@@ -113,35 +115,27 @@ function loadImageFile(file: File): Promise<LoadedImage> {
   });
 }
 
-/** 画像を持っていなくても試せるサンプル。図形の輪郭がエッジになる */
+/**
+ * 画像を持っていなくても試せるサンプル。図形の輪郭がそのままエッジになる。
+ * 画素は canvas 非依存の純粋関数（sampleImage.ts）で作り、表示用の URL を得るためだけに canvas へ描く。
+ */
 function makeSampleImage(): LoadedImage {
-  const w = 480;
-  const h = 360;
+  const image = createSampleImage();
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = image.width;
+  canvas.height = image.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas を使えません");
-  ctx.fillStyle = "#f4f4f4";
-  ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "#222";
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(150, 170, 90, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeRect(290, 80, 140, 110);
-  ctx.beginPath();
-  ctx.moveTo(60, 320);
-  ctx.lineTo(420, 250);
-  ctx.stroke();
-  ctx.fillStyle = "#555";
-  ctx.beginPath();
-  ctx.moveTo(320, 330);
-  ctx.lineTo(400, 230);
-  ctx.lineTo(450, 330);
-  ctx.closePath();
-  ctx.fill();
-  return fromDrawable("sample.png", canvas, w, h, canvas.toDataURL("image/png"));
+  const imageData = ctx.createImageData(image.width, image.height);
+  imageData.data.set(image.data);
+  ctx.putImageData(imageData, 0, 0);
+  return fromDrawable(
+    SAMPLE_IMAGE_NAME,
+    canvas,
+    image.width,
+    image.height,
+    canvas.toDataURL("image/png"),
+  );
 }
 
 function clampInt(v: number, lo: number, hi: number): number {
@@ -344,6 +338,7 @@ export function NewRunClient() {
         steps: output.options.steps,
         phiConfig: output.phiConfig,
         result,
+        ownerToken: getOwnerToken(),
       });
       if (!res.ok) {
         setSaveError(res.error);
@@ -431,13 +426,20 @@ export function NewRunClient() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                <span>エッジ検出</span>
+              {/* label で囲むと最初のボタンがラベルの対象になり、読み上げ名が
+                  「エッジ検出Sobel…」になってしまう。ボタン群は group として扱う */}
+              <div
+                role="group"
+                aria-labelledby="edge-method-label"
+                className="flex flex-col gap-1 text-sm sm:col-span-2"
+              >
+                <span id="edge-method-label">エッジ検出</span>
                 <div className="flex gap-2">
                   {EDGE_METHODS.map((m) => (
                     <button
                       key={m}
                       type="button"
+                      aria-pressed={config.method === m}
                       onClick={() => updateConfig({ method: m })}
                       className={`rounded border px-3 py-1 ${
                         config.method === m
@@ -449,7 +451,7 @@ export function NewRunClient() {
                     </button>
                   ))}
                 </div>
-              </label>
+              </div>
 
               <Slider
                 label="ぼかしの強さ σ"

@@ -12,20 +12,24 @@ datasource db {
 
 /// 実行1回分のシミュレーション。パラメータと結果をまとめて保存する
 model Run {
-  id        String   @id @default(cuid())
-  title     String
-  /// 公開URLで共有するかどうか
-  isPublic  Boolean  @default(false)
+  id         String   @id @default(cuid())
+  title      String
+  /// 公開URLで共有するかどうか（未使用。共有URLは未実装）
+  isPublic   Boolean  @default(false)
+  /// 作成したブラウザを表す乱数。認証が無いので、削除はこれが一致する本人だけに許す。
+  /// 値が無い実行（seed で入れたお手本）は誰にも削除させない
+  ownerToken String?
   /// ロボット台数
-  agents    Int
+  agents     Int
   /// シミュレーションのステップ数
-  steps     Int
+  steps      Int
   /// 重要度関数Φの生成条件（エッジ検出の種類・閾値など）を JSON で保持する
-  phiConfig Json
+  phiConfig  Json
   /// 各ステップの配置履歴・評価値。スキーマが固まるまでは JSON で持つ
-  result    Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  result     Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
+  @@index([ownerToken])
 }

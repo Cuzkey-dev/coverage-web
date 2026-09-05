@@ -13,10 +13,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const description =
+  "画像から重要度関数Φを設計し、二輪移動ロボットの被覆制御シミュレーションを実行・保存・比較できるツール";
+
 export const metadata: Metadata = {
   title: "Coverage Web — 被覆制御シミュレータ",
-  description:
-    "画像から重要度関数Φを設計し、被覆制御シミュレーションを実行・保存・比較できるツール",
+  description,
+  // リンクを共有したときに題と説明が出るようにする
+  openGraph: {
+    title: "Coverage Web — 被覆制御シミュレータ",
+    description,
+    type: "website",
+    locale: "ja_JP",
+  },
 };
 
 export default function RootLayout({

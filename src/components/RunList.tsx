@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { removeRun } from "@/app/actions";
+import { useEffect, useState, useTransition } from "react";
+import { listOwnRunIds, removeRun } from "@/app/actions";
 import { formatCost, formatDate } from "@/lib/format";
 import { METHOD_LABELS } from "@/lib/coverage/params";
+import { getOwnerToken } from "@/lib/coverage/ownerToken";
 import type { RunSummary } from "@/lib/runs";
 
 type Props = {
@@ -16,14 +17,32 @@ type Props = {
 
 /**
  * 保存済み実行のカード一覧。2 件までチェックして比較へ進む。
+ * 削除ボタンは、このブラウザが保存した実行にだけ出す（認証が無いので他人の実行は消せない）。
  */
 export function RunList({ runs, preselect }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>(
     preselect && runs.some((r) => r.id === preselect) ? [preselect] : [],
   );
+  const [ownIds, setOwnIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // 自分が保存した実行を、サーバーに突き合わせて聞く（トークンは画面へ配らない）
+  useEffect(() => {
+    const ids = runs.filter((r) => !r.isSample).map((r) => r.id);
+    let alive = true;
+    const load =
+      ids.length === 0
+        ? Promise.resolve<string[]>([])
+        : listOwnRunIds(ids, getOwnerToken());
+    void load.then((mine) => {
+      if (alive) setOwnIds(new Set(mine));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [runs]);
 
   const toggle = (id: string) => {
     setSelected((s) => {
@@ -36,12 +55,17 @@ export function RunList({ runs, preselect }: Props) {
   const onDelete = (run: RunSummary) => {
     if (!window.confirm(`「${run.title}」を削除します。よろしいですか？`)) return;
     startTransition(async () => {
-      const res = await removeRun(run.id);
+      const res = await removeRun(run.id, getOwnerToken());
       if (!res.ok) {
         setError(res.error);
         return;
       }
       setSelected((s) => s.filter((x) => x !== run.id));
+      setOwnIds((s) => {
+        const next = new Set(s);
+        next.delete(run.id);
+        return next;
+      });
       router.refresh();
     });
   };
@@ -126,15 +150,24 @@ export function RunList({ runs, preselect }: Props) {
                 <dt>作成</dt>
                 <dd>{formatDate(run.createdAt)}</dd>
               </dl>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => onDelete(run)}
-                  disabled={pending}
-                  className="text-xs text-neutral-400 hover:text-red-600 disabled:opacity-40"
-                >
-                  削除
-                </button>
+              <div className="flex items-center justify-between">
+                {run.isSample ? (
+                  <span className="rounded bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                    お手本
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {ownIds.has(run.id) && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(run)}
+                    disabled={pending}
+                    className="text-xs text-neutral-400 hover:text-red-600 disabled:opacity-40"
+                  >
+                    削除
+                  </button>
+                )}
               </div>
             </li>
           );
