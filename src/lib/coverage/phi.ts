@@ -413,3 +413,21 @@ export function phiFromImage(image: ImageLike, config: PhiConfig): PhiGrid {
   const coarse = downsampleToGrid(edges, config.gridWidth, config.gridHeight);
   return normalizeWithFloor(coarse, config.floor);
 }
+
+/**
+ * Φ を小さなΦに縮める（一覧のカードに出す豆ヒートマップ用）。
+ * 縦横比は保ったまま、長辺が maxSide になるようにする。
+ * 画像そのものではなく Φ を配るので、アップロードされた絵が他人に見えることはない。
+ */
+export function downsamplePhi(grid: PhiGrid, maxSide: number): PhiGrid {
+  const scale = Math.min(1, maxSide / Math.max(grid.width, grid.height));
+  const w = Math.max(1, Math.round(grid.width * scale));
+  const h = Math.max(1, Math.round(grid.height * scale));
+  const small = downsampleToGrid(
+    { width: grid.width, height: grid.height, data: Float32Array.from(grid.phi) },
+    w,
+    h,
+  );
+  // 一覧に載せる数値なので、桁を落として転送量を減らす
+  return { ...small, phi: small.phi.map((v) => Math.round(v * 100) / 100) };
+}

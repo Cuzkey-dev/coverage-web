@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { listOwnRunIds, removeRun } from "@/app/actions";
+import { PhiThumb } from "@/components/PhiThumb";
 import { formatCost, formatDate } from "@/lib/format";
 import { METHOD_LABELS } from "@/lib/coverage/params";
 import { getOwnerToken } from "@/lib/coverage/ownerToken";
@@ -127,14 +128,7 @@ export function RunList({ runs, preselect }: Props) {
                 <Link href={`/runs/${run.id}`} className="flex-1 font-medium hover:underline">
                   {run.title}
                 </Link>
-                {run.imageThumb && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={run.imageThumb}
-                    alt=""
-                    className="h-12 w-12 rounded object-cover"
-                  />
-                )}
+                {run.thumb && <PhiThumb grid={run.thumb} className="w-14" />}
               </div>
               <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-neutral-600 dark:text-neutral-400">
                 <dt>台数</dt>

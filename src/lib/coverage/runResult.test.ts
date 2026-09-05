@@ -49,6 +49,8 @@ describe("buildRunResult / parseRunResult", () => {
     const grid = uniformGrid(6, 4);
     const simulation = simulate(grid, { agents: 2, steps: 5, seed: 1 });
     const result = buildRunResult({ grid, seed: 1, simulation, imageName: "a.png" });
+    // 元画像そのものは保存しない（公開したとき他人に見えてしまうため）
+    expect(Object.keys(result)).not.toContain("imageThumb");
 
     expect(result.finalCost).toBe(result.costs[5]);
     expect(result.frames).toHaveLength(6);

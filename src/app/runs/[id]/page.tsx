@@ -65,17 +65,9 @@ export default async function RunDetailPage({
               {formatCost(run.result?.finalCost)}
             </span>
           </div>
-          {run.result?.imageThumb && (
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-neutral-500">元画像</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={run.result.imageThumb}
-                alt="元画像のサムネイル"
-                className="w-40 rounded border border-neutral-200 dark:border-neutral-800"
-              />
-            </div>
-          )}
+          <p className="text-xs text-neutral-500">
+            元画像は保存していません。保存されるのは Φ とパラメータと結果だけです。
+          </p>
         </aside>
       </div>
     </main>

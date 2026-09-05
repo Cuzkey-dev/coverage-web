@@ -1,8 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { sanitizePhiConfig, type PhiConfig } from "@/lib/coverage/phi";
+import { downsamplePhi, sanitizePhiConfig, type PhiConfig } from "@/lib/coverage/phi";
 import { parseRunResult, type RunResult } from "@/lib/coverage/runResult";
 import type { RunParams } from "@/lib/coverage/params";
+import type { PhiGrid } from "@/lib/coverage/types";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -17,6 +18,9 @@ import type { Prisma } from "@/generated/prisma/client";
  */
 export const MAX_RUNS = 200;
 
+/** 一覧カードに出す豆ヒートマップの長辺（セル数）。一覧の転送量を抑えるため小さくする */
+const THUMB_GRID_SIDE = 16;
+
 /** 一覧カード用。result のうち軽い項目だけを取り出す */
 export type RunSummary = {
   id: string;
@@ -29,7 +33,8 @@ export type RunSummary = {
   gridHeight: number;
   finalCost: number | null;
   imageName?: string;
-  imageThumb?: string;
+  /** 一覧カードに出す豆ヒートマップ用の、小さくした Φ */
+  thumb: PhiGrid | null;
   createdAt: string;
   /** seed で入れたお手本かどうか（削除ボタンを出さない） */
   isSample: boolean;
@@ -70,7 +75,7 @@ function summarize(run: RunRow): RunSummary {
     gridHeight: phiConfig.gridHeight,
     finalCost: result?.finalCost ?? null,
     imageName: result?.imageName,
-    imageThumb: result?.imageThumb,
+    thumb: result ? downsamplePhi(result.grid, THUMB_GRID_SIDE) : null,
     createdAt: run.createdAt.toISOString(),
     isSample: run.ownerToken === null,
   };

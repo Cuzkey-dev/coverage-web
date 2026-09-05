@@ -41,8 +41,6 @@ import type { PhiGrid } from "@/lib/coverage/types";
 
 /** 処理に使う画像の長辺（画素）。大きい画像はここまで縮めてからエッジ検出する */
 const MAX_PROCESS_SIZE = 512;
-/** 保存するサムネイルの長辺（画素） */
-const THUMB_SIZE = 160;
 
 type LoadedImage = {
   name: string;
@@ -50,8 +48,6 @@ type LoadedImage = {
   url: string;
   /** エッジ検出に使う縮小画像 */
   data: ImageLike;
-  /** 保存用サムネイル（data URL・JPEG） */
-  thumb: string;
   originalWidth: number;
   originalHeight: number;
 };
@@ -83,17 +79,10 @@ function fromDrawable(
   ctx.drawImage(source, 0, 0, w, h);
   const imageData = ctx.getImageData(0, 0, w, h);
 
-  const ts = Math.min(1, THUMB_SIZE / Math.max(w, h));
-  const thumbCanvas = document.createElement("canvas");
-  thumbCanvas.width = Math.max(1, Math.round(w * ts));
-  thumbCanvas.height = Math.max(1, Math.round(h * ts));
-  thumbCanvas.getContext("2d")?.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
-
   return {
     name,
     url,
     data: { width: w, height: h, data: imageData.data },
-    thumb: thumbCanvas.toDataURL("image/jpeg", 0.7),
     originalWidth: width,
     originalHeight: height,
   };
@@ -329,7 +318,6 @@ export function NewRunClient() {
         costs: output.costs,
       },
       imageName: image.name,
-      imageThumb: image.thumb,
     });
     startSaving(async () => {
       const res = await saveRun({
@@ -670,7 +658,8 @@ export function NewRunClient() {
           {saveError && <span className="text-red-600">{saveError}</span>}
         </div>
         <p className="text-xs text-neutral-500">
-          保存されるのは Φ・パラメータ・位置履歴（最大 121 フレームに間引き）・評価値の推移・元画像のサムネイル。元画像そのものは保存しない。
+          保存されるのは Φ・パラメータ・位置履歴（最大 121 フレームに間引き）・評価値の推移・画像のファイル名。
+          <strong>画像そのものは保存しません。</strong>保存した実行は誰からも見え、削除できるのはこのブラウザだけです。
         </p>
       </section>
     </div>

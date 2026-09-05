@@ -8,7 +8,10 @@ import type { SimulationResult } from "./simulate";
  *   - Φ そのもの（元画像は保存しないので、これが無いと再生できない）
  *   - 間引いた位置履歴
  *   - 全ステップの評価値
- *   - 元画像の小さなサムネイル（どの画像から作った Φ かを一覧で見分けるため）
+ *
+ * 元画像は縮小版もサムネイルも保存しない。公開すると保存物は誰からも見えるので、
+ * アップロードされた絵が他人の画面に出ないようにするため。
+ * 一覧に出す豆ヒートマップは、保存済みの Φ から都度作る（downsamplePhi）。
  *
  * 間引きの方針:
  *   位置履歴は台数 × ステップ数 × 2 で膨らむので、保存するフレームを
@@ -31,10 +34,8 @@ export type RunResult = {
   frames: StoredFrame[];
   costs: number[];
   finalCost: number;
-  /** 元画像のファイル名（表示用） */
+  /** 元画像のファイル名（表示用）。画像そのものは保存しない */
   imageName?: string;
-  /** 元画像の小さなサムネイル（data URL・JPEG） */
-  imageThumb?: string;
 };
 
 function round(v: number, digits: number): number {
@@ -70,7 +71,6 @@ export function buildRunResult(input: {
   seed: number;
   simulation: SimulationResult;
   imageName?: string;
-  imageThumb?: string;
 }): RunResult {
   const { grid, seed, simulation } = input;
   const costs = simulation.costs.map((c) => round(c, 3));
@@ -86,7 +86,6 @@ export function buildRunResult(input: {
     costs,
     finalCost: costs.length > 0 ? costs[costs.length - 1] : 0,
     imageName: input.imageName,
-    imageThumb: input.imageThumb,
   };
 }
 
@@ -117,7 +116,6 @@ export function parseRunResult(json: unknown): RunResult | null {
         ? r.finalCost
         : ((r.costs as number[]).at(-1) ?? 0),
     imageName: typeof r.imageName === "string" ? r.imageName : undefined,
-    imageThumb: typeof r.imageThumb === "string" ? r.imageThumb : undefined,
   };
 }
 

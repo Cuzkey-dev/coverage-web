@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PHI_CONFIG,
+  downsamplePhi,
   downsampleToGrid,
   gaussianBlur,
   gradient,
@@ -229,5 +230,37 @@ describe("sanitizePhiConfig", () => {
 
   it("欠けた項目は既定値で補う", () => {
     expect(sanitizePhiConfig({})).toEqual(DEFAULT_PHI_CONFIG);
+  });
+});
+
+describe("downsamplePhi", () => {
+  it("長辺を指定した大きさに収め、縦横比を保つ", () => {
+    const grid = { width: 64, height: 32, phi: new Array(64 * 32).fill(0.5) };
+    const small = downsamplePhi(grid, 16);
+    expect(small.width).toBe(16);
+    expect(small.height).toBe(8);
+    expect(small.phi).toHaveLength(128);
+  });
+
+  it("元より小さくない場合はそのままの大きさになる", () => {
+    const grid = { width: 8, height: 8, phi: new Array(64).fill(1) };
+    expect(downsamplePhi(grid, 16).width).toBe(8);
+  });
+
+  it("明るい所と暗い所の関係が保たれる", () => {
+    // 左半分だけ 1、右半分 0
+    const phi: number[] = [];
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) phi.push(x < 8 ? 1 : 0);
+    }
+    const small = downsamplePhi({ width: 16, height: 16, phi }, 4);
+    expect(small.phi[0]).toBeGreaterThan(small.phi[3]);
+  });
+
+  it("小数 2 桁に丸めて転送量を減らす", () => {
+    const grid = { width: 4, height: 1, phi: [0.123456, 0.987654, 0, 1] };
+    for (const v of downsamplePhi(grid, 4).phi) {
+      expect(Math.round(v * 100) / 100).toBe(v);
+    }
   });
 });

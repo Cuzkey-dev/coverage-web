@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { CostChart } from "@/components/CostChart";
 import { ParamTable } from "@/components/ParamTable";
+import { PhiThumb } from "@/components/PhiThumb";
 import { SimulationCanvas } from "@/components/SimulationCanvas";
 import { diffParams } from "@/lib/coverage/params";
+import { downsamplePhi } from "@/lib/coverage/phi";
 import { formatCost, formatDate } from "@/lib/format";
 import type { RunDetail } from "@/lib/runs";
 
@@ -53,9 +55,8 @@ export function CompareView({ a, b }: Props) {
                 {run.result?.imageName && ` ・ ${run.result.imageName}`}
               </span>
             </div>
-            {run.result?.imageThumb && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={run.result.imageThumb} alt="" className="h-12 w-12 rounded object-cover" />
+            {run.result && (
+              <PhiThumb grid={downsamplePhi(run.result.grid, 16)} className="w-14" />
             )}
           </div>
         ))}
