@@ -47,3 +47,6 @@ next-env.d.ts
 
 # 開発用ローカル PostgreSQL のデータ（npm run db:local）
 /.local-db
+
+.vercel
+.env*

@@ -135,11 +135,11 @@ export function RunList({ runs, preselect }: Props) {
                 <dd className="font-mono">{run.agents}</dd>
                 <dt>ステップ数</dt>
                 <dd className="font-mono">{run.steps}</dd>
-                <dt>最終評価値</dt>
+                <dt>{run.algorithm === "server-v1" ? "輪郭誤差" : "最終評価値 H"}</dt>
                 <dd className="font-mono">{formatCost(run.finalCost)}</dd>
-                <dt>エッジ検出</dt>
+                <dt>{run.algorithm === "server-v1" ? "モデル" : "エッジ検出"}</dt>
                 <dd>
-                  {METHOD_LABELS[run.method]} / {run.gridWidth}×{run.gridHeight}
+                  {run.algorithm === "server-v1" ? "研究モデル" : METHOD_LABELS[run.method]} / {run.gridWidth}×{run.gridHeight}
                 </dd>
                 <dt>作成</dt>
                 <dd>{formatDate(run.createdAt)}</dd>

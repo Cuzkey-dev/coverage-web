@@ -29,13 +29,16 @@ export type InitialMode = keyof typeof INITIAL_MODES;
 export type ExperimentSettings = {
   initialMode: InitialMode;
   maxSteps: number;
-  algorithm: "lloyd";
-  stopReason: "converged" | "limit";
+  algorithm: "lloyd" | "server-v1";
+  stopReason: "converged" | "limit" | "budget";
+  executedSteps?: number;
+  sizeMode?: "auto" | "fixed";
 };
 export type QualitySample = {
   step: number;
   meanEdgeDistance: number;
   edgeCoverage: number;
+  f1?: number;
 };
 export type ExperimentInput = {
   image: ImageLike;
@@ -43,6 +46,7 @@ export type ExperimentInput = {
   phiConfig: PhiConfig;
   options: SimulationOptions;
   initialMode: InitialMode;
+  sizeMode?: "auto" | "fixed";
 };
 export type ExperimentProgress = {
   step: number;

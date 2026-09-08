@@ -45,7 +45,7 @@ export function downloadComparisonFigure(
   ctx.font = "bold 26px sans-serif";
   ctx.fillText("Coverage Web | 最終配置の比較", 24, 40);
   ctx.font = "16px sans-serif";
-  ctx.fillText("点ロボット・Lloyd法 / 各条件の領域全体を表示", 24, 72);
+  ctx.fillText("各条件の領域全体を表示 / 実行モデルは保存結果に記録", 24, 72);
   entries.forEach(({ label, result: r }, i) => {
     const left = 20 + (i % 2) * (panel + gap),
       top = header + Math.floor(i / 2) * (panel + 104),
@@ -108,6 +108,7 @@ export function ExperimentResult({
   const final = result.frames.at(-1)!,
     quality = result.quality?.at(-1);
   const prefix = `coverage-${final.positions.length}-${result.seed}`;
+  const serverModel = result.settings?.algorithm === "server-v1";
   const exportPng = () => {
     const source = figure.current?.querySelector("canvas");
     if (!source) return;
@@ -123,7 +124,7 @@ export function ExperimentResult({
     ctx.fillText(label, 16, 26);
     ctx.font = "14px sans-serif";
     ctx.fillText(
-      `N=${final.positions.length} / seed=${result.seed} / ${result.grid.width}×${result.grid.height} / Lloyd`,
+      `N=${final.positions.length} / seed=${result.seed} / ${result.grid.width}×${result.grid.height} / ${serverModel ? "研究モデル" : "Lloyd"}`,
       16,
       49,
     );
@@ -134,8 +135,7 @@ export function ExperimentResult({
   };
   const exportCsv = () => {
     const settings = result.settings;
-    const header =
-      "step,H,mean_edge_distance_cells,edge_coverage_radius_3,agents,seed,initial_mode,grid_width,grid_height,algorithm,max_steps,stop_reason";
+    const header = `step,${serverModel ? "outline_error" : "H"},mean_edge_distance_cells,edge_coverage_radius_3,agents,seed,initial_mode,grid_width,grid_height,algorithm,max_steps,stop_reason,F1,executed_steps,size_mode`;
     const rows = result.costs.map((cost, step) => {
       const q = result.quality?.find((q) => q.step === step);
       return [
@@ -151,6 +151,9 @@ export function ExperimentResult({
         settings?.algorithm ?? "lloyd",
         settings?.maxSteps ?? final.step,
         settings?.stopReason ?? "limit",
+        q?.f1 ?? "",
+        settings?.executedSteps ?? final.step,
+        settings?.sizeMode ?? "",
       ].join(",");
     });
     downloadFile(`${prefix}-metrics.csv`, [header, ...rows].join("\n"));
@@ -163,16 +166,32 @@ export function ExperimentResult({
         {result.settings && (
           <>
             {INITIAL_MODES[result.settings.initialMode]} ·{" "}
-            {result.settings.stopReason === "converged"
-              ? "位置変化が収束"
-              : "指定ステップに到達"}{" "}
+            {result.settings.stopReason === "budget"
+              ? "計算時間の上限に到達"
+              : result.settings.stopReason === "converged"
+                ? serverModel
+                  ? "評価の改善が落ち着いたため終了"
+                  : "位置変化が収束"
+                : "指定ステップに到達"}{" "}
             ·{" "}
           </>
         )}
         {final.step}ステップ · シード {result.seed}
+        {serverModel &&
+          ` · 採用 ${final.step} / 実行 ${result.settings?.executedSteps ?? final.step}ステップ · 研究モデル · サイズ${result.settings?.sizeMode === "fixed" ? "固定" : "自動"}`}
       </div>
       {quality && (
-        <div className="grid grid-cols-2 gap-3 rounded bg-neutral-100 p-3 dark:bg-neutral-900">
+        <div
+          className={`grid ${quality.f1 !== undefined ? "grid-cols-3" : "grid-cols-2"} gap-3 rounded bg-neutral-100 p-3 dark:bg-neutral-900`}
+        >
+          {quality.f1 !== undefined && (
+            <div>
+              <div className="text-xs text-neutral-500">F1スコア ↑</div>
+              <strong className="font-mono text-xl">
+                {quality.f1.toFixed(3)}
+              </strong>
+            </div>
+          )}
           <div>
             <div className="text-xs text-neutral-500">輪郭充足率 ↑</div>
             <strong className="font-mono text-xl">
@@ -193,6 +212,7 @@ export function ExperimentResult({
         frames={result.frames}
         costs={result.costs}
         plain={!!result.settings}
+        serverModel={serverModel}
       />
       {result.quality && (
         <details>
@@ -200,6 +220,17 @@ export function ExperimentResult({
           <QualityChart
             series={[
               { label: "輪郭充足率", color: "#0284c7", values: result.quality },
+            ]}
+          />
+        </details>
+      )}
+      {quality?.f1 !== undefined && (
+        <details>
+          <summary className="cursor-pointer text-sm">F1スコアの推移</summary>
+          <QualityChart
+            metric="f1"
+            series={[
+              { label: "F1", color: "#16a34a", values: result.quality! },
             ]}
           />
         </details>
@@ -230,7 +261,11 @@ export function ExperimentResult({
           onClick={() =>
             downloadFile(
               `${prefix}-result.json`,
-              JSON.stringify({ result, phiConfig: config }, null, 2),
+              JSON.stringify(
+                serverModel ? { result } : { result, phiConfig: config },
+                null,
+                2,
+              ),
               "application/json",
             )
           }
@@ -241,7 +276,10 @@ export function ExperimentResult({
       {quality && (
         <p className="text-xs leading-relaxed text-neutral-500">
           輪郭充足率は、半径{QUALITY_RADIUS}
-          セル以内にロボットがいる輪郭セルの割合。平均輪郭距離は、各ロボットから最寄り輪郭セルまでの距離の平均です。Hは同じΦ・解像度の条件内で比較してください。
+          セル以内にロボットがいる輪郭セルの割合。平均輪郭距離は、各ロボットから最寄り輪郭セルまでの距離の平均です。
+          {serverModel
+            ? "F1と輪郭誤差は同じ画像・解像度で比較してください。配置は評価に基づいて採用した時点を表示します。"
+            : "Hは同じΦ・解像度の条件内で比較してください。"}
         </p>
       )}
     </div>

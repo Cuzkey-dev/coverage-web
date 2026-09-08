@@ -96,6 +96,9 @@ export function parseRunResult(json: unknown): RunResult | null {
   }
   const finite = (v: unknown): v is number =>
     typeof v === "number" && Number.isFinite(v);
+  const serverModel =
+    (r.settings as Record<string, unknown> | undefined)?.algorithm ===
+    "server-v1";
   if (
     !Number.isInteger(grid.width) ||
     !Number.isInteger(grid.height) ||
@@ -137,10 +140,10 @@ export function parseRunResult(json: unknown): RunResult | null {
           p.length === 2 &&
           finite(p[0]) &&
           finite(p[1]) &&
-          p[0] >= -0.01 &&
-          p[1] >= -0.01 &&
-          p[0] <= (grid.width as number) &&
-          p[1] <= (grid.height as number),
+          p[0] >= (serverModel ? -(grid.width as number) : -0.01) &&
+          p[1] >= (serverModel ? -(grid.height as number) : -0.01) &&
+          p[0] <= (grid.width as number) * (serverModel ? 2 : 1) &&
+          p[1] <= (grid.height as number) * (serverModel ? 2 : 1),
       )
     )
       return null;
@@ -150,7 +153,7 @@ export function parseRunResult(json: unknown): RunResult | null {
   const settings = r.settings as ExperimentSettings | undefined;
   if (
     settings &&
-    (settings.algorithm !== "lloyd" ||
+    (!["lloyd", "server-v1"].includes(settings.algorithm) ||
       ![
         "weighted",
         "uniform",
@@ -162,7 +165,13 @@ export function parseRunResult(json: unknown): RunResult | null {
       !Number.isInteger(settings.maxSteps) ||
       settings.maxSteps < previous ||
       settings.maxSteps > 3000 ||
-      !["converged", "limit"].includes(settings.stopReason))
+      !["converged", "limit", "budget"].includes(settings.stopReason) ||
+      (settings.sizeMode !== undefined &&
+        !["auto", "fixed"].includes(settings.sizeMode)) ||
+      (settings.executedSteps !== undefined &&
+        (!Number.isInteger(settings.executedSteps) ||
+          settings.executedSteps < previous ||
+          settings.executedSteps > settings.maxSteps)))
   )
     return null;
   const quality = r.quality as QualitySample[] | undefined;
@@ -179,7 +188,8 @@ export function parseRunResult(json: unknown): RunResult | null {
         q.meanEdgeDistance < 0 ||
         !finite(q.edgeCoverage) ||
         q.edgeCoverage < 0 ||
-        q.edgeCoverage > 1
+        q.edgeCoverage > 1 ||
+        (q.f1 !== undefined && (!finite(q.f1) || q.f1 < 0 || q.f1 > 1))
       )
         return null;
       last = q.step;
@@ -200,6 +210,12 @@ export function parseRunResult(json: unknown): RunResult | null {
             initialMode: settings.initialMode,
             maxSteps: settings.maxSteps,
             stopReason: settings.stopReason,
+            ...(settings.executedSteps !== undefined
+              ? { executedSteps: settings.executedSteps }
+              : {}),
+            ...(settings.sizeMode !== undefined
+              ? { sizeMode: settings.sizeMode }
+              : {}),
           },
         }
       : {}),
@@ -209,6 +225,7 @@ export function parseRunResult(json: unknown): RunResult | null {
             step: q.step,
             meanEdgeDistance: q.meanEdgeDistance,
             edgeCoverage: q.edgeCoverage,
+            ...(q.f1 !== undefined ? { f1: q.f1 } : {}),
           })),
         }
       : {}),

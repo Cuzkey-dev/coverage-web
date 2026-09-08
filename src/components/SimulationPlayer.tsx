@@ -13,6 +13,7 @@ type Props = {
   /** 全ステップの評価値（frames が間引かれていても costs は全ステップ分） */
   costs: number[];
   plain?: boolean;
+  serverModel?: boolean;
 };
 
 /** 再生全体にかける時間の目安（ms）。フレーム数で割って 1 コマの長さを決める */
@@ -23,7 +24,13 @@ const MIN_FRAME_MS = 40;
  * 実行結果の再生。再生／一時停止／ステップ送り／スライダーで動かし、
  * 評価値の折れ線に現在のステップを縦線で示す。
  */
-export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) {
+export function SimulationPlayer({
+  grid,
+  frames,
+  costs,
+  plain = false,
+  serverModel = false,
+}: Props) {
   const [index, setIndex] = useState(plain ? frames.length - 1 : 0);
   const [playing, setPlaying] = useState(!plain && frames.length > 1);
   const [showTrails, setShowTrails] = useState(!plain);
@@ -40,7 +47,10 @@ export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) 
 
   useEffect(() => {
     if (!playing) return;
-    const interval = Math.max(MIN_FRAME_MS, PLAYBACK_DURATION_MS / Math.max(1, frames.length));
+    const interval = Math.max(
+      MIN_FRAME_MS,
+      PLAYBACK_DURATION_MS / Math.max(1, frames.length),
+    );
     const id = window.setInterval(() => {
       setIndex((i) => {
         if (i >= last) {
@@ -63,16 +73,34 @@ export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) 
 
   return (
     <div className="flex flex-col gap-3">
-      <SimulationCanvas grid={grid} frames={frames} frameIndex={index} showTrails={showTrails} showHeatmap={showHeatmap} monochrome={plain} />
+      <SimulationCanvas
+        grid={grid}
+        frames={frames}
+        frameIndex={index}
+        showTrails={showTrails}
+        showHeatmap={showHeatmap}
+        monochrome={plain}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={button} onClick={() => { setPlaying(false); setIndex(0); }} aria-label="最初へ">
+        <button
+          type="button"
+          className={button}
+          onClick={() => {
+            setPlaying(false);
+            setIndex(0);
+          }}
+          aria-label="最初へ"
+        >
           ⏮
         </button>
         <button
           type="button"
           className={button}
-          onClick={() => { setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }}
+          onClick={() => {
+            setPlaying(false);
+            setIndex((i) => Math.max(0, i - 1));
+          }}
           disabled={index === 0}
           aria-label="1 ステップ戻る"
         >
@@ -91,13 +119,24 @@ export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) 
         <button
           type="button"
           className={button}
-          onClick={() => { setPlaying(false); setIndex((i) => Math.min(last, i + 1)); }}
+          onClick={() => {
+            setPlaying(false);
+            setIndex((i) => Math.min(last, i + 1));
+          }}
           disabled={index >= last}
           aria-label="1 ステップ進む"
         >
           ▶
         </button>
-        <button type="button" className={button} onClick={() => { setPlaying(false); setIndex(last); }} aria-label="最後へ">
+        <button
+          type="button"
+          className={button}
+          onClick={() => {
+            setPlaying(false);
+            setIndex(last);
+          }}
+          aria-label="最後へ"
+        >
           ⏭
         </button>
         <input
@@ -105,7 +144,10 @@ export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) 
           min={0}
           max={last}
           value={index}
-          onChange={(e) => { setPlaying(false); setIndex(Number(e.target.value)); }}
+          onChange={(e) => {
+            setPlaying(false);
+            setIndex(Number(e.target.value));
+          }}
           className="min-w-40 flex-1"
           aria-label="ステップ"
         />
@@ -113,21 +155,45 @@ export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) 
           step {step} / {frames[last]?.step ?? 0}
         </span>
         <label className="flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400">
-          <input type="checkbox" checked={showTrails} onChange={(e) => setShowTrails(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={showTrails}
+            onChange={(e) => setShowTrails(e.target.checked)}
+          />
           軌跡
         </label>
-        <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={showHeatmap} onChange={e => setShowHeatmap(e.target.checked)} />重要度 Φ</label>
+        <label className="flex items-center gap-1 text-sm">
+          <input
+            type="checkbox"
+            checked={showHeatmap}
+            onChange={(e) => setShowHeatmap(e.target.checked)}
+          />
+          {serverModel ? "参照輪郭" : "重要度 Φ"}
+        </label>
       </div>
 
       <div className="flex items-baseline gap-3 text-sm">
-        <span className="text-neutral-500">評価値 H</span>
-        <span className="font-mono text-lg tabular-nums">{formatCost(cost)}</span>
+        <span className="text-neutral-500">
+          {serverModel ? "輪郭誤差" : "評価値 H"}
+        </span>
+        <span className="font-mono text-lg tabular-nums">
+          {formatCost(cost)}
+        </span>
         <span className="text-neutral-500">
           （最終 {formatCost(costs[costs.length - 1])}）
         </span>
       </div>
 
-      <CostChart series={[{ label: "H", color: "#38bdf8", values: costs }]} marker={step} />
+      <CostChart
+        series={[
+          {
+            label: serverModel ? "輪郭誤差" : "H",
+            color: "#38bdf8",
+            values: costs,
+          },
+        ]}
+        marker={step}
+      />
     </div>
   );
 }

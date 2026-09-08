@@ -3,8 +3,10 @@ import type { QualitySample } from "@/lib/coverage/experiment";
 
 export function QualityChart({
   series,
+  metric = "edgeCoverage",
 }: {
   series: { label: string; color: string; values: QualitySample[] }[];
+  metric?: "edgeCoverage" | "f1";
 }) {
   const last = Math.max(
     1,
@@ -28,7 +30,7 @@ export function QualityChart({
       <svg
         viewBox="0 0 640 216"
         role="img"
-        aria-label="輪郭充足率の推移"
+        aria-label={metric === "f1" ? "F1スコアの推移" : "輪郭充足率の推移"}
         className="h-auto w-full text-neutral-500"
       >
         {[0, 0.25, 0.5, 0.75, 1].map((v) => (
@@ -80,7 +82,8 @@ export function QualityChart({
             stroke={s.color}
             strokeWidth={2}
             points={s.values
-              .map((q) => `${x(q.step)},${y(q.edgeCoverage)}`)
+              .filter((q) => q[metric] !== undefined)
+              .map((q) => `${x(q.step)},${y(q[metric]!)}`)
               .join(" ")}
           />
         ))}

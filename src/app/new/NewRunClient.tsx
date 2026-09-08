@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { saveRun } from "@/app/actions";
 import { CostChart } from "@/components/CostChart";
 import {
@@ -21,13 +21,11 @@ import {
 import { getOwnerToken } from "@/lib/coverage/ownerToken";
 import {
   DEFAULT_PHI_CONFIG,
-  EDGE_METHODS,
   MAX_GRID_SIZE,
-  phiFromImage,
-  sanitizePhiConfig,
   type ImageLike,
   type PhiConfig,
 } from "@/lib/coverage/phi";
+import { executeServerExperiment } from "@/lib/coverage/serverExperiment";
 import type { RunResult } from "@/lib/coverage/runResult";
 import { createCatalogImage, SAMPLES } from "@/lib/coverage/samples";
 import {
@@ -39,8 +37,8 @@ import {
 const samples = SAMPLES.map((s) => ({ ...s, image: createCatalogImage(s.id) }));
 const initialConfig: PhiConfig = {
   ...DEFAULT_PHI_CONFIG,
-  gridWidth: 128,
-  gridHeight: 128,
+  gridWidth: 140,
+  gridHeight: 140,
   floor: 0,
   bandSigma: 1,
 };
@@ -90,8 +88,9 @@ async function readImage(file: File): Promise<ImageLike> {
 export function NewRunClient() {
   const [source, setSource] = useState({ name: "鳥", image: samples[0].image });
   const [config, setConfig] = useState<PhiConfig>(initialConfig);
-  const [options, setOptions] = useState({ agents: 120, steps: 600, seed: 7 });
-  const [initialMode, setInitialMode] = useState<InitialMode>("weighted");
+  const [options, setOptions] = useState({ agents: 120, steps: 3000, seed: 7 });
+  const [initialMode, setInitialMode] = useState<InitialMode>("uniform");
+  const [sizeMode, setSizeMode] = useState<"auto" | "fixed">("auto");
   const [results, setResults] = useState<Entry[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<
@@ -100,19 +99,20 @@ export function NewRunClient() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState<number | null>(null);
   const [title, setTitle] = useState("");
-  const workerRef = useRef<Worker | null>(null),
-    rejectRef = useRef<((e: Error) => void) | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const deferred = useDeferredValue(config);
   const grid = useMemo(
-    () => phiFromImage(source.image, deferred),
-    [source.image, deferred],
+    () => ({
+      width: config.gridWidth,
+      height: config.gridHeight,
+      phi: Array(config.gridWidth * config.gridHeight).fill(0) as number[],
+    }),
+    [config.gridWidth, config.gridHeight],
   );
   const busy = running || saving !== null;
   useEffect(
     () => () => {
-      workerRef.current?.terminate();
-      rejectRef.current?.(new Error("cancelled"));
+      abortRef.current?.abort();
     },
     [],
   );
@@ -124,9 +124,9 @@ export function NewRunClient() {
     setConfig((c) => ({
       ...c,
       gridHeight: Math.max(
-        8,
+        32,
         Math.min(
-          MAX_GRID_SIZE,
+          Math.min(MAX_GRID_SIZE, 192),
           Math.round((c.gridWidth * image.height) / image.width),
         ),
       ),
@@ -140,9 +140,6 @@ export function NewRunClient() {
       setError(e instanceof Error ? e.message : "読み込めませんでした。");
     }
   };
-  const patchConfig = (patch: Partial<PhiConfig>) =>
-    setConfig((c) => sanitizePhiConfig({ ...c, ...patch }));
-
   const run = async (kind: "single" | "counts" | "initial") => {
     if (busy) return;
     const opts = sanitizeSimulationOptions(options);
@@ -181,60 +178,37 @@ export function NewRunClient() {
           phiConfig: config,
           options: { ...opts, agents: item.agents },
           initialMode: item.mode,
+          sizeMode,
         };
-        const result = await new Promise<RunResult>((resolve, reject) => {
-          rejectRef.current = reject;
-          const worker = new Worker(
-            new URL("../../lib/coverage/experiment.worker.ts", import.meta.url),
-            { type: "module" },
-          );
-          workerRef.current = worker;
-          worker.onmessage = (event) => {
-            if (event.data.type === "progress")
-              setProgress({
-                ...event.data.progress,
-                label: item.label,
-                job: job + 1,
-                total: jobs.length,
-              });
-            if (event.data.type === "complete") {
-              worker.terminate();
-              workerRef.current = null;
-              rejectRef.current = null;
-              resolve(event.data.result);
-            }
-            if (event.data.type === "error") {
-              worker.terminate();
-              reject(new Error(event.data.message));
-            }
-          };
-          worker.onerror = () => {
-            worker.terminate();
-            reject(
-              new Error(
-                "計算を開始できませんでした。ページを再読み込みしてください。",
-              ),
-            );
-          };
-          worker.postMessage(input);
-        });
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const result = await executeServerExperiment(
+          input,
+          controller.signal,
+          (p) =>
+            setProgress({
+              ...p,
+              label: item.label,
+              job: job + 1,
+              total: jobs.length,
+            }),
+        );
+        if (controller.signal.aborted) break;
         setResults((prev) => [
           ...prev,
           { label: `${source.name} / ${item.label}`, result, config },
         ]);
       }
     } catch (e) {
-      if (!(e instanceof Error && e.message === "cancelled"))
+      if (!(e instanceof Error && e.name === "AbortError"))
         setError(e instanceof Error ? e.message : "計算に失敗しました。");
     } finally {
-      workerRef.current = null;
-      rejectRef.current = null;
+      abortRef.current = null;
       setRunning(false);
     }
   };
   const cancel = () => {
-    workerRef.current?.terminate();
-    rejectRef.current?.(new Error("cancelled"));
+    abortRef.current?.abort();
   };
   const save = async (index: number) => {
     if (busy) return;
@@ -269,7 +243,7 @@ export function NewRunClient() {
   };
   const exportComparison = () => {
     const header =
-      "agents,seed,initial_mode,steps,H,mean_edge_distance_cells,edge_coverage_radius_3";
+      "agents,seed,initial_mode,steps,outline_error,mean_edge_distance_cells,edge_coverage_radius_3,F1,executed_steps,size_mode";
     const rows = results.map(({ result: r }) =>
       [
         r.frames[0].positions.length,
@@ -279,6 +253,9 @@ export function NewRunClient() {
         r.finalCost,
         r.quality?.at(-1)?.meanEdgeDistance,
         r.quality?.at(-1)?.edgeCoverage,
+        r.quality?.at(-1)?.f1,
+        r.settings?.executedSteps,
+        r.settings?.sizeMode,
       ].join(","),
     );
     downloadFile("coverage-comparison.csv", [header, ...rows].join("\n"));
@@ -324,7 +301,7 @@ export function NewRunClient() {
             ))}
           </div>
           <div
-            className="grid items-start gap-5 md:grid-cols-2"
+            className="max-w-md"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
@@ -339,16 +316,6 @@ export function NewRunClient() {
                 image={source.image}
                 label={`入力画像 ${source.name}`}
                 className="max-h-72 rounded-lg border border-neutral-200 object-contain"
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="mb-2 text-sm text-neutral-500">
-                重要度 Φ · {grid.width} × {grid.height} セル
-                {config !== deferred ? " · 更新中" : ""}
-              </p>
-              <SimulationCanvas
-                grid={grid}
-                className="max-h-72 object-contain"
               />
             </div>
           </div>
@@ -422,63 +389,23 @@ export function NewRunClient() {
               </button>
             ))}
           </div>
-          <details className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-            <summary className="cursor-pointer text-sm font-medium">
-              画像処理・解像度の詳細
-            </summary>
-            <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <label className="space-y-1 text-sm">
-                エッジ検出
-                <select
-                  className={field}
-                  value={config.method}
-                  onChange={(e) =>
-                    patchConfig({
-                      method: e.target.value as PhiConfig["method"],
-                    })
-                  }
-                >
-                  {EDGE_METHODS.map((m) => (
-                    <option key={m} value={m}>
-                      {m.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {(
-                [
-                  ["入力のぼかし σ", "blurSigma", 0, 5, 0.1],
-                  ["輪郭帯のぼかし σ（セル）", "bandSigma", 0, 8, 0.1],
-                  ["背景の重み", "floor", 0, 1, 0.001],
-                  ["グリッド幅", "gridWidth", 8, 256, 1],
-                  ["グリッド高さ", "gridHeight", 8, 256, 1],
-                  ...(config.method === "canny"
-                    ? [
-                        ["下限閾値", "lowThreshold", 0, 1, 0.01],
-                        ["上限閾値", "highThreshold", 0, 1, 0.01],
-                      ]
-                    : [["閾値", "threshold", 0, 1, 0.01]]),
-                ] as [string, keyof PhiConfig, number, number, number][]
-              ).map(([label, key, min, max, step]) => (
-                <label key={key} className="space-y-1 text-sm">
-                  {label}
-                  <input
-                    className={field}
-                    type="number"
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={config[key] ?? 0}
-                    onChange={(e) =>
-                      patchConfig({ [key]: Number(e.target.value) })
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-          </details>
           <p className="text-xs leading-relaxed text-neutral-500">
-            公開版は点ロボットを重心へ移すLloyd法です。「輪郭近くに分散」はΦに比例して初期点を生成します。実機の旋回・衝突回避はモデル化していません。移動量が0.001セル未満で5回続くと終了します（最低10ステップ）。
+            <label className="mb-3 flex items-center gap-2 text-sm">
+              ロボットサイズ
+              <select
+                className={field + " max-w-xs"}
+                value={sizeMode}
+                onChange={(e) =>
+                  setSizeMode(e.target.value as "auto" | "fixed")
+                }
+              >
+                <option value="auto">台数・画像に合わせる</option>
+                <option value="fixed">基準サイズに固定</option>
+              </select>
+            </label>
+            研究モデルでロボットの移動を計算します。画像は計算のためサーバーへ送信されます。
+            全域ランダムからの形成には時間がかかるため、3,000ステップを推奨します。
+            同じ画像・条件・シードで再実行できます。
           </p>
           <div className="flex flex-wrap gap-3">
             <button className={primary} onClick={() => void run("single")}>
@@ -492,7 +419,7 @@ export function NewRunClient() {
             </button>
           </div>
           <p className="text-xs text-neutral-500">
-            比較では画像・Φ・解像度・シードを固定します。台数が多い実行は時間がかかる場合があります。
+            比較では画像・解像度・シードを固定します。「台数・画像に合わせる」では各条件でサイズを調整します。台数が多い実行は時間がかかる場合があります。
           </p>
         </section>
       </fieldset>
@@ -566,6 +493,7 @@ export function NewRunClient() {
                   <thead>
                     <tr className="border-b border-neutral-200">
                       <th className="p-2">条件</th>
+                      <th className="p-2">F1 ↑</th>
                       <th className="p-2">輪郭充足率 ↑</th>
                       <th className="p-2">輪郭距離 ↓</th>
                       <th className="p-2">終了ステップ</th>
@@ -578,6 +506,9 @@ export function NewRunClient() {
                         className="border-b border-neutral-200 dark:border-neutral-800"
                       >
                         <td className="p-2">{e.label}</td>
+                        <td className="p-2 font-mono">
+                          {e.result.quality?.at(-1)?.f1?.toFixed(3) ?? "—"}
+                        </td>
                         <td className="p-2 font-mono">
                           {(
                             (e.result.quality?.at(-1)?.edgeCoverage ?? 0) * 100
@@ -607,7 +538,7 @@ export function NewRunClient() {
                     values: e.result.quality ?? [],
                   }))}
                 />
-                <h3 className="mt-4 text-sm font-medium">H の推移</h3>
+                <h3 className="mt-4 text-sm font-medium">輪郭誤差の推移</h3>
                 <CostChart
                   series={results.map((e, i) => ({
                     label: `${e.result.frames[0].positions.length}台 / ${INITIAL_MODES[e.result.settings!.initialMode]}`,
@@ -630,7 +561,7 @@ export function NewRunClient() {
               />
             </label>
             <p className="max-w-lg text-xs leading-relaxed text-neutral-500">
-              「公開保存」でΦ・条件・座標・評価値を共有します。Φから画像の輪郭を読み取れるため、公開可能な画像だけを保存してください。画像ファイル自体は送信しません。
+              「公開保存」で輪郭・実行条件・座標・評価値を共有します。公開可能な画像だけを保存してください。計算だけではデータベースに保存されません。
             </p>
           </div>
           <div

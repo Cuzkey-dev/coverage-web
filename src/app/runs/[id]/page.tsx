@@ -17,7 +17,12 @@ export default async function RunDetailPage({
   const run = await getRun(id);
   if (!run) notFound();
 
-  const rows = listParams(run.params);
+  const serverModel = run.result?.settings?.algorithm === "server-v1";
+  const rows = listParams(run.params).filter(
+    (row) =>
+      !serverModel ||
+      ["agents", "steps", "seed", "gridWidth", "gridHeight"].includes(row.key),
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10">
@@ -44,9 +49,15 @@ export default async function RunDetailPage({
         <section className="flex flex-col gap-3">
           <h2 className="font-semibold">再生</h2>
           {run.result ? (
-            <ExperimentResult result={run.result} label={run.title} config={run.params.phiConfig} />
+            <ExperimentResult
+              result={run.result}
+              label={run.title}
+              config={run.params.phiConfig}
+            />
           ) : (
-            <p className="text-sm text-neutral-500">結果が保存されていません。</p>
+            <p className="text-sm text-neutral-500">
+              結果が保存されていません。
+            </p>
           )}
         </section>
 
@@ -56,13 +67,17 @@ export default async function RunDetailPage({
             <ParamTable rows={rows} />
           </div>
           <div className="flex flex-col gap-1 text-sm">
-            <span className="text-neutral-500">最終評価値 H</span>
+            <span className="text-neutral-500">
+              {serverModel ? "最終輪郭誤差" : "最終評価値 H"}
+            </span>
             <span className="font-mono text-xl tabular-nums">
               {formatCost(run.result?.finalCost)}
             </span>
           </div>
           <p className="text-xs text-neutral-500">
-            元画像は保存していません。保存されるのは Φ とパラメータと結果だけです。
+            {serverModel
+              ? "参照輪郭・実行条件・配置結果・評価値を保存しています。"
+              : "元画像は保存していません。保存されるのは Φ とパラメータと結果だけです。"}
           </p>
         </aside>
       </div>

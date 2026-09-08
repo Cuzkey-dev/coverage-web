@@ -32,6 +32,7 @@ export type RunSummary = {
   gridWidth: number;
   gridHeight: number;
   finalCost: number | null;
+  algorithm?: string;
   imageName?: string;
   /** 一覧カードに出す豆ヒートマップ用の、小さくした Φ */
   thumb: PhiGrid | null;
@@ -74,6 +75,7 @@ function summarize(run: RunRow): RunSummary {
     gridWidth: phiConfig.gridWidth,
     gridHeight: phiConfig.gridHeight,
     finalCost: result?.finalCost ?? null,
+    algorithm: result?.settings?.algorithm,
     imageName: result?.imageName,
     thumb: result ? downsamplePhi(result.grid, THUMB_GRID_SIDE) : null,
     createdAt: run.createdAt.toISOString(),

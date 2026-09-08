@@ -22,7 +22,14 @@ type Props = { a: RunDetail; b: RunDetail };
  * 2 件を左右に並べる。パラメータは変わった行だけ強調し、評価値の推移は同じ軸に重ねる。
  */
 export function CompareView({ a, b }: Props) {
-  const rows = diffParams(a.params, b.params);
+  const serverA = a.result?.settings?.algorithm === "server-v1";
+  const serverB = b.result?.settings?.algorithm === "server-v1";
+  const sameModel = serverA === serverB;
+  const rows = diffParams(a.params, b.params).filter(
+    (row) =>
+      !(serverA || serverB) ||
+      ["agents", "steps", "seed", "gridWidth", "gridHeight"].includes(row.key),
+  );
   const changed = rows.filter((r) => r.changed);
 
   const finalA = a.result?.finalCost ?? null;
@@ -34,7 +41,9 @@ export function CompareView({ a, b }: Props) {
     a.result.grid.height === b.result.grid.height &&
     a.result.grid.phi.every((v, i) => v === b.result!.grid.phi[i]);
   const delta =
-    sameGrid && finalA !== null && finalB !== null ? finalB - finalA : null;
+    sameModel && sameGrid && finalA !== null && finalB !== null
+      ? finalB - finalA
+      : null;
   const ratio =
     delta !== null && finalA ? ((delta / finalA) * 100).toFixed(1) : null;
 
@@ -97,7 +106,9 @@ export function CompareView({ a, b }: Props) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">最終評価値 H</h2>
+          <h2 className="font-semibold">
+            {serverA && serverB ? "最終輪郭誤差" : "最終評価値"}
+          </h2>
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <div className="flex min-w-0 flex-col">
               <span className="text-neutral-500">A</span>
@@ -106,6 +117,9 @@ export function CompareView({ a, b }: Props) {
                 style={{ color: COLOR_A }}
               >
                 {formatCost(finalA)}
+                <span className="block text-xs">
+                  {serverA ? "輪郭誤差 / 研究モデル" : "H / Lloyd"}
+                </span>
               </span>
             </div>
             <div className="flex min-w-0 flex-col">
@@ -115,6 +129,9 @@ export function CompareView({ a, b }: Props) {
                 style={{ color: COLOR_B }}
               >
                 {formatCost(finalB)}
+                <span className="block text-xs">
+                  {serverB ? "輪郭誤差 / 研究モデル" : "H / Lloyd"}
+                </span>
               </span>
             </div>
             <div className="col-span-2 flex min-w-0 flex-col sm:col-span-1">
@@ -132,24 +149,26 @@ export function CompareView({ a, b }: Props) {
             </div>
           </div>
           <p className="break-all text-xs text-neutral-500">
-            H は各セルの「担当ロボットまでの距離の2乗 ×
-            Φ」の総和。小さいほど重要な場所を近くで覆えている。
-            Hの絶対値は同じΦ・解像度の条件内で比較してください。画像・帯幅・背景の重みが異なる実行の優劣には使えません。
+            {sameModel
+              ? "同じ画像・解像度の結果を比較してください。"
+              : "実行モデルと指標が異なるため、数値の差分は比較できません。"}
           </p>
-          <CostChart
-            series={[
-              {
-                label: `A: ${a.title}`,
-                color: COLOR_A,
-                values: a.result?.costs ?? [],
-              },
-              {
-                label: `B: ${b.title}`,
-                color: COLOR_B,
-                values: b.result?.costs ?? [],
-              },
-            ]}
-          />
+          {sameModel && (
+            <CostChart
+              series={[
+                {
+                  label: `A: ${a.title}`,
+                  color: COLOR_A,
+                  values: a.result?.costs ?? [],
+                },
+                {
+                  label: `B: ${b.title}`,
+                  color: COLOR_B,
+                  values: b.result?.costs ?? [],
+                },
+              ]}
+            />
+          )}
         </section>
       </div>
 
