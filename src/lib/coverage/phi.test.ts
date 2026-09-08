@@ -222,7 +222,7 @@ describe("sanitizePhiConfig", () => {
       blurSigma: Number.NaN,
     });
     expect(c.method).toBe("canny");
-    expect(c.gridWidth).toBe(128);
+    expect(c.gridWidth).toBe(256);
     expect(c.gridHeight).toBe(8);
     expect(c.floor).toBe(0);
     expect(c.blurSigma).toBe(0);

@@ -1,4 +1,5 @@
-import { lloydStep, nearestSiteIndex } from "./geometry";
+import { lloydStep } from "./geometry";
+import { SiteIndex } from "./spatial";
 import type { PhiGrid, Point } from "./types";
 
 /**
@@ -24,9 +25,9 @@ export type SimulationResult = {
   costs: number[];
 };
 
-/** UI での上限。weightedCentroids と coverageCost が毎ステップ全セル×全台数を走査するため */
-export const MAX_AGENTS = 40;
-export const MAX_STEPS = 300;
+/** UI・保存検証で共通の上限。大台数のUI実行はexperiment.worker.tsを使う。 */
+export const MAX_AGENTS = 1200;
+export const MAX_STEPS = 3000;
 export const MIN_AGENTS = 1;
 export const MIN_STEPS = 1;
 
@@ -97,12 +98,13 @@ export function initialPositions(
  */
 export function coverageCost(sites: readonly Point[], grid: PhiGrid): number {
   if (sites.length === 0) return 0;
+  const index = new SiteIndex(sites);
   let cost = 0;
   for (let y = 0; y < grid.height; y++) {
     for (let x = 0; x < grid.width; x++) {
       const weight = grid.phi[y * grid.width + x];
       if (weight <= 0) continue;
-      const owner = nearestSiteIndex({ x, y }, sites);
+      const owner = index.nearest(x, y);
       const dx = x - sites[owner].x;
       const dy = y - sites[owner].y;
       cost += (dx * dx + dy * dy) * weight;

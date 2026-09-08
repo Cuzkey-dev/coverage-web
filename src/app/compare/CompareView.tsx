@@ -9,6 +9,9 @@ import { diffParams } from "@/lib/coverage/params";
 import { downsamplePhi } from "@/lib/coverage/phi";
 import { formatCost, formatDate } from "@/lib/format";
 import type { RunDetail } from "@/lib/runs";
+import { INITIAL_MODES } from "@/lib/coverage/experiment";
+import { QualityChart } from "@/components/QualityChart";
+import { downloadComparisonFigure } from "@/components/ExperimentResult";
 
 const COLOR_A = "#38bdf8";
 const COLOR_B = "#fb923c";
@@ -24,7 +27,14 @@ export function CompareView({ a, b }: Props) {
 
   const finalA = a.result?.finalCost ?? null;
   const finalB = b.result?.finalCost ?? null;
-  const delta = finalA !== null && finalB !== null ? finalB - finalA : null;
+  const sameGrid =
+    a.result &&
+    b.result &&
+    a.result.grid.width === b.result.grid.width &&
+    a.result.grid.height === b.result.grid.height &&
+    a.result.grid.phi.every((v, i) => v === b.result!.grid.phi[i]);
+  const delta =
+    sameGrid && finalA !== null && finalB !== null ? finalB - finalA : null;
   const ratio =
     delta !== null && finalA ? ((delta / finalA) * 100).toFixed(1) : null;
 
@@ -47,7 +57,10 @@ export function CompareView({ a, b }: Props) {
               {tag}
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
-              <Link href={`/runs/${run.id}`} className="truncate font-medium hover:underline">
+              <Link
+                href={`/runs/${run.id}`}
+                className="truncate font-medium hover:underline"
+              >
                 {run.title}
               </Link>
               <span className="break-all text-xs text-neutral-500">
@@ -56,7 +69,10 @@ export function CompareView({ a, b }: Props) {
               </span>
             </div>
             {run.result && (
-              <PhiThumb grid={downsamplePhi(run.result.grid, 16)} className="w-14" />
+              <PhiThumb
+                grid={downsamplePhi(run.result.grid, 16)}
+                className="w-14"
+              />
             )}
           </div>
         ))}
@@ -73,6 +89,11 @@ export function CompareView({ a, b }: Props) {
             </span>
           </h2>
           <ParamTable rows={rows} headA="A" headB="B" />
+          <p className="text-sm">
+            初期配置 A:{" "}
+            {INITIAL_MODES[a.result?.settings?.initialMode ?? "uniform"]} / B:{" "}
+            {INITIAL_MODES[b.result?.settings?.initialMode ?? "uniform"]}
+          </p>
         </section>
 
         <section className="flex flex-col gap-3">
@@ -80,34 +101,53 @@ export function CompareView({ a, b }: Props) {
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <div className="flex min-w-0 flex-col">
               <span className="text-neutral-500">A</span>
-              <span className="break-all font-mono text-xl tabular-nums" style={{ color: COLOR_A }}>
+              <span
+                className="break-all font-mono text-xl tabular-nums"
+                style={{ color: COLOR_A }}
+              >
                 {formatCost(finalA)}
               </span>
             </div>
             <div className="flex min-w-0 flex-col">
               <span className="text-neutral-500">B</span>
-              <span className="break-all font-mono text-xl tabular-nums" style={{ color: COLOR_B }}>
+              <span
+                className="break-all font-mono text-xl tabular-nums"
+                style={{ color: COLOR_B }}
+              >
                 {formatCost(finalB)}
               </span>
             </div>
             <div className="col-span-2 flex min-w-0 flex-col sm:col-span-1">
               <span className="text-neutral-500">B − A</span>
               <span className="break-all font-mono text-xl tabular-nums">
-                {delta === null ? "—" : `${delta > 0 ? "+" : ""}${formatCost(delta)}`}
+                {delta === null
+                  ? "—"
+                  : `${delta > 0 ? "+" : ""}${formatCost(delta)}`}
                 {ratio !== null && (
-                  <span className="block text-sm text-neutral-500">({ratio}%)</span>
+                  <span className="block text-sm text-neutral-500">
+                    ({ratio}%)
+                  </span>
                 )}
               </span>
             </div>
           </div>
           <p className="break-all text-xs text-neutral-500">
-            H は各セルの「担当ロボットまでの距離の2乗 × Φ」の総和。小さいほど重要な場所を近くで覆えている。
-            グリッド解像度が違う実行どうしは絶対値をそのまま比べられないので、推移の形で見る。
+            H は各セルの「担当ロボットまでの距離の2乗 ×
+            Φ」の総和。小さいほど重要な場所を近くで覆えている。
+            Hの絶対値は同じΦ・解像度の条件内で比較してください。画像・帯幅・背景の重みが異なる実行の優劣には使えません。
           </p>
           <CostChart
             series={[
-              { label: `A: ${a.title}`, color: COLOR_A, values: a.result?.costs ?? [] },
-              { label: `B: ${b.title}`, color: COLOR_B, values: b.result?.costs ?? [] },
+              {
+                label: `A: ${a.title}`,
+                color: COLOR_A,
+                values: a.result?.costs ?? [],
+              },
+              {
+                label: `B: ${b.title}`,
+                color: COLOR_B,
+                values: b.result?.costs ?? [],
+              },
             ]}
           />
         </section>
@@ -115,6 +155,27 @@ export function CompareView({ a, b }: Props) {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">最終配置</h2>
+        {a.result && b.result && (
+          <button
+            className="self-start rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
+            onClick={() =>
+              downloadComparisonFigure([
+                { label: `A: ${a.title}`, result: a.result! },
+                { label: `B: ${b.title}`, result: b.result! },
+              ])
+            }
+          >
+            比較図 PNG
+          </button>
+        )}
+        {a.result?.quality && b.result?.quality && (
+          <QualityChart
+            series={[
+              { label: "A", color: COLOR_A, values: a.result.quality },
+              { label: "B", color: COLOR_B, values: b.result.quality },
+            ]}
+          />
+        )}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[a, b].map((run, i) => (
             <div key={run.id} className="flex flex-col gap-1">
@@ -126,10 +187,14 @@ export function CompareView({ a, b }: Props) {
                   grid={run.result.grid}
                   frames={run.result.frames}
                   frameIndex={run.result.frames.length - 1}
-                  showTrails
+                  showTrails={false}
+                  showHeatmap={false}
+                  monochrome
                 />
               ) : (
-                <p className="text-sm text-neutral-500">結果が保存されていません。</p>
+                <p className="text-sm text-neutral-500">
+                  結果が保存されていません。
+                </p>
               )}
             </div>
           ))}

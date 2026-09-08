@@ -8,15 +8,15 @@ export const dynamic = "force-dynamic";
 const steps = [
   {
     title: "画像から Φ を作る",
-    body: "画像をアップロードし、エッジ検出（Sobel / Scharr / Canny）のパラメータを触りながら重要度関数 Φ をその場で確かめる。",
+    body: "6種類のサンプルや手元の画像から輪郭を抽出。帯の幅や背景の重みを調整して重要度関数 Φ を確かめる。",
   },
   {
     title: "被覆制御を実行する",
-    body: "台数・ステップ数・初期配置のシードを決めて Lloyd 法を回す。ロボットの動きと評価値 H の推移をブラウザで見る。",
+    body: "最大1,200台・6種類の初期配置に対応。Lloyd法で配置を求め、台数や初期配置を変えた4条件を一括比較する。",
   },
   {
     title: "保存して比べる",
-    body: "実行に名前を付けて保存し、2 件を並べてパラメータの差分と評価値を対比する。",
+    body: "輪郭の充足率・距離・評価値 H を確認。配置図PNG、評価値と座標CSVを出力し、実行を保存する。",
   },
 ];
 
@@ -35,8 +35,8 @@ export default async function Home() {
       <section className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold tracking-tight">被覆制御シミュレータ</h1>
         <p className="max-w-2xl text-neutral-600 dark:text-neutral-400">
-          画像から重要度関数 Φ を設計し、二輪移動ロボットの被覆制御シミュレーションを
-          実行・保存・比較するためのツールです。
+          画像の輪郭を、たくさんのロボットで表現する。
+          最大1,200台の配置を計算し、画像・台数・初期配置による違いを比較するツールです。
         </p>
         <div className="flex gap-3">
           <Link

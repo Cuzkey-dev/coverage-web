@@ -134,8 +134,8 @@ describe("simulate", () => {
 
 describe("sanitizeSimulationOptions", () => {
   it("範囲外を丸め、整数にする", () => {
-    const o = sanitizeSimulationOptions({ agents: 999, steps: 0.4, seed: 1.6 });
-    expect(o.agents).toBe(40);
+    const o = sanitizeSimulationOptions({ agents: 9999, steps: 0.4, seed: 1.6 });
+    expect(o.agents).toBe(1200);
     expect(o.steps).toBe(1);
     expect(o.seed).toBe(2);
   });

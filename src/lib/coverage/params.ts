@@ -23,7 +23,8 @@ export type ParamKey =
   | "highThreshold"
   | "gridWidth"
   | "gridHeight"
-  | "floor";
+  | "floor"
+  | "bandSigma";
 
 export const PARAM_LABELS: Record<ParamKey, string> = {
   agents: "ロボット台数",
@@ -37,6 +38,7 @@ export const PARAM_LABELS: Record<ParamKey, string> = {
   gridWidth: "グリッド幅",
   gridHeight: "グリッド高さ",
   floor: "Φ の下駄",
+  bandSigma: "輪郭帯のぼかし σ（セル）",
 };
 
 export const METHOD_LABELS: Record<PhiConfig["method"], string> = {
@@ -63,6 +65,8 @@ export function paramValue(params: RunParams, key: ParamKey): string {
       return String(params.seed);
     case "method":
       return METHOD_LABELS[params.phiConfig.method] ?? params.phiConfig.method;
+    case "bandSigma":
+      return String(params.phiConfig.bandSigma ?? 0);
     case "gridWidth":
     case "gridHeight":
       return String(params.phiConfig[key]);
@@ -83,7 +87,9 @@ export type ParamRow = {
 
 /** 1件分の一覧 */
 export function listParams(params: RunParams): ParamRow[] {
-  return relevantKeys(params.phiConfig.method).map((key) => ({
+  const keys = relevantKeys(params.phiConfig.method);
+  if (params.phiConfig.bandSigma !== undefined) keys.push("bandSigma");
+  return keys.map((key) => ({
     key,
     label: PARAM_LABELS[key],
     a: paramValue(params, key),
@@ -98,6 +104,13 @@ export function listParams(params: RunParams): ParamRow[] {
 export function diffParams(a: RunParams, b: RunParams): ParamRow[] {
   const keysA = relevantKeys(a.phiConfig.method);
   const keysB = relevantKeys(b.phiConfig.method);
+  if (
+    a.phiConfig.bandSigma !== undefined ||
+    b.phiConfig.bandSigma !== undefined
+  ) {
+    keysA.push("bandSigma");
+    keysB.push("bandSigma");
+  }
   const order = Object.keys(PARAM_LABELS) as ParamKey[];
   const union = order.filter((k) => keysA.includes(k) || keysB.includes(k));
 

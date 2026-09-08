@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const description =
-  "画像から重要度関数Φを設計し、二輪移動ロボットの被覆制御シミュレーションを実行・保存・比較できるツール";
+  "6種類の画像と最大1,200台の点ロボットで被覆制御を検証。初期配置・台数の比較、配置図PNG・評価値CSVの出力に対応";
 
 export const metadata: Metadata = {
   title: "Coverage Web — 被覆制御シミュレータ",

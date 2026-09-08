@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ParamTable } from "@/components/ParamTable";
-import { SimulationPlayer } from "@/components/SimulationPlayer";
+import { ExperimentResult } from "@/components/ExperimentResult";
 import { listParams } from "@/lib/coverage/params";
 import { formatCost, formatDate } from "@/lib/format";
 import { getRun } from "@/lib/runs";
@@ -44,11 +44,7 @@ export default async function RunDetailPage({
         <section className="flex flex-col gap-3">
           <h2 className="font-semibold">再生</h2>
           {run.result ? (
-            <SimulationPlayer
-              grid={run.result.grid}
-              frames={run.result.frames}
-              costs={run.result.costs}
-            />
+            <ExperimentResult result={run.result} label={run.title} config={run.params.phiConfig} />
           ) : (
             <p className="text-sm text-neutral-500">結果が保存されていません。</p>
           )}

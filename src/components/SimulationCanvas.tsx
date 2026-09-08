@@ -16,6 +16,8 @@ type Props = {
   frameIndex?: number;
   /** 軌跡を描くか */
   showTrails?: boolean;
+  showHeatmap?: boolean;
+  monochrome?: boolean;
   className?: string;
 };
 
@@ -28,6 +30,8 @@ export function SimulationCanvas({
   frames = [],
   frameIndex,
   showTrails = true,
+  showHeatmap = true,
+  monochrome = false,
   className,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,7 +63,8 @@ export function SimulationCanvas({
 
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(heatRef.current.canvas, 0, 0, canvas.width, canvas.height);
+    if (showHeatmap) ctx.drawImage(heatRef.current.canvas, 0, 0, canvas.width, canvas.height);
+    else { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
     if (frames.length === 0 || index < 0) return;
     const agents = frames[0].positions.length;
@@ -83,19 +88,19 @@ export function SimulationCanvas({
     }
 
     // 現在位置
-    const radius = Math.max(4, Math.min(8, cell * 0.6));
+    const radius = monochrome ? Math.max(1.4, Math.min(4.5, 35 / Math.sqrt(agents))) : Math.max(2, Math.min(8, cell * 0.6));
     for (let a = 0; a < agents; a++) {
       const [x, y] = frames[index].positions[a];
       const [cx, cy] = toCanvasPoint(x, y, cell);
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fillStyle = agentColor(a);
+      ctx.fillStyle = monochrome ? "#111827" : agentColor(a);
       ctx.fill();
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = "#ffffff";
-      ctx.stroke();
+      if (!monochrome) ctx.stroke();
     }
-  }, [grid, frames, index, showTrails, cell]);
+  }, [grid, frames, index, showTrails, showHeatmap, monochrome, cell]);
 
   return (
     <canvas
@@ -105,7 +110,7 @@ export function SimulationCanvas({
       className={`h-auto w-full max-w-full rounded border border-neutral-200 bg-black dark:border-neutral-800 ${className ?? ""}`}
       style={{ aspectRatio: `${grid.width} / ${grid.height}` }}
       role="img"
-      aria-label="Φ のヒートマップとロボットの位置"
+      aria-label={showHeatmap ? "Φ のヒートマップとロボットの位置" : "白地にロボットの配置"}
     />
   );
 }

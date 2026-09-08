@@ -1,4 +1,5 @@
 import type { PhiGrid, Point } from "./types";
+import { SiteIndex } from "./spatial";
 
 /** 2点間のユークリッド距離の2乗。平方根を取らないのは比較にしか使わないため */
 export function squaredDistance(a: Point, b: Point): number {
@@ -41,13 +42,15 @@ export function weightedCentroids(
   const massSum = new Array<number>(sites.length).fill(0);
   const xSum = new Array<number>(sites.length).fill(0);
   const ySum = new Array<number>(sites.length).fill(0);
+  if (sites.length === 0) return [];
+  const index = new SiteIndex(sites);
 
   for (let y = 0; y < grid.height; y++) {
     for (let x = 0; x < grid.width; x++) {
       const weight = grid.phi[y * grid.width + x];
       if (weight <= 0) continue;
 
-      const owner = nearestSiteIndex({ x, y }, sites);
+      const owner = index.nearest(x, y);
       massSum[owner] += weight;
       xSum[owner] += x * weight;
       ySum[owner] += y * weight;

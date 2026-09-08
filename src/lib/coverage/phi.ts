@@ -31,12 +31,14 @@ export type PhiConfig = {
   gridHeight: number;
   /** Φ の下駄。エッジが無いセルにも与える最小重み（0〜1）。0 だと空白領域を誰も担当しなくなる */
   floor: number;
+  /** エッジをグリッドへ縮小した後の Gaussian σ（セル）。省略時は従来の帯幅。 */
+  bandSigma?: number;
 };
 
 export const EDGE_METHODS: readonly EdgeMethod[] = ["sobel", "scharr", "canny"];
 
 /** グリッドの1辺の上限。weightedCentroids が毎ステップ全セルを走査するため、UI もこれで制限する */
-export const MAX_GRID_SIZE = 128;
+export const MAX_GRID_SIZE = 256;
 export const MIN_GRID_SIZE = 8;
 
 export const DEFAULT_PHI_CONFIG: PhiConfig = {
@@ -76,7 +78,8 @@ export function toGrayscale(image: ImageLike): FloatImage {
     const r = data[i * 4];
     const g = data[i * 4 + 1];
     const b = data[i * 4 + 2];
-    out[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const alpha = (data[i * 4 + 3] ?? 255) / 255;
+    out[i] = alpha * (0.299 * r + 0.587 * g + 0.114 * b) / 255 + 1 - alpha;
   }
   return { width, height, data: out };
 }
@@ -290,7 +293,7 @@ export function hysteresis(
   // 強いエッジからスタックで伸ばす（再帰だと大きな画像で深さが溢れる）
   const stack: number[] = [];
   for (let i = 0; i < data.length; i++) {
-    if (data[i] >= high) {
+    if (data[i] > 0 && data[i] >= high) {
       out[i] = 1;
       stack.push(i);
     }
@@ -307,7 +310,7 @@ export function hysteresis(
         const yy = y + j;
         if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
         const n = yy * width + xx;
-        if (out[n] === 0 && data[n] >= low) {
+        if (out[n] === 0 && data[n] > 0 && data[n] >= low) {
           out[n] = 1;
           stack.push(n);
         }
@@ -389,6 +392,7 @@ export function sanitizePhiConfig(input: Partial<PhiConfig>): PhiConfig {
     gridWidth: Math.round(clamp(c.gridWidth, MIN_GRID_SIZE, MAX_GRID_SIZE)),
     gridHeight: Math.round(clamp(c.gridHeight, MIN_GRID_SIZE, MAX_GRID_SIZE)),
     floor: clamp(c.floor, 0, 1),
+    ...(input.bandSigma !== undefined ? { bandSigma: clamp(input.bandSigma, 0, 8) } : {}),
   };
 }
 
@@ -411,7 +415,10 @@ export function detectEdges(image: ImageLike, config: PhiConfig): FloatImage {
 export function phiFromImage(image: ImageLike, config: PhiConfig): PhiGrid {
   const edges = detectEdges(image, config);
   const coarse = downsampleToGrid(edges, config.gridWidth, config.gridHeight);
-  return normalizeWithFloor(coarse, config.floor);
+  const band = config.bandSigma
+    ? { ...coarse, phi: Array.from(gaussianBlur({ width: coarse.width, height: coarse.height, data: Float32Array.from(coarse.phi) }, config.bandSigma).data) }
+    : coarse;
+  return normalizeWithFloor(band, config.floor);
 }
 
 /**

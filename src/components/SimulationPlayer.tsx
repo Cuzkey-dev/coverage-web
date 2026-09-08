@@ -12,6 +12,7 @@ type Props = {
   frames: StoredFrame[];
   /** 全ステップの評価値（frames が間引かれていても costs は全ステップ分） */
   costs: number[];
+  plain?: boolean;
 };
 
 /** 再生全体にかける時間の目安（ms）。フレーム数で割って 1 コマの長さを決める */
@@ -22,18 +23,19 @@ const MIN_FRAME_MS = 40;
  * 実行結果の再生。再生／一時停止／ステップ送り／スライダーで動かし、
  * 評価値の折れ線に現在のステップを縦線で示す。
  */
-export function SimulationPlayer({ grid, frames, costs }: Props) {
-  const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(frames.length > 1);
-  const [showTrails, setShowTrails] = useState(true);
+export function SimulationPlayer({ grid, frames, costs, plain = false }: Props) {
+  const [index, setIndex] = useState(plain ? frames.length - 1 : 0);
+  const [playing, setPlaying] = useState(!plain && frames.length > 1);
+  const [showTrails, setShowTrails] = useState(!plain);
+  const [showHeatmap, setShowHeatmap] = useState(!plain);
   const last = frames.length - 1;
 
   // frames が差し替わったら先頭へ戻し、自動で再生を始める（描画中に状態を合わせる React の定石）
   const [trackedFrames, setTrackedFrames] = useState(frames);
   if (trackedFrames !== frames) {
     setTrackedFrames(frames);
-    setIndex(0);
-    setPlaying(frames.length > 1);
+    setIndex(plain ? frames.length - 1 : 0);
+    setPlaying(!plain && frames.length > 1);
   }
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export function SimulationPlayer({ grid, frames, costs }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      <SimulationCanvas grid={grid} frames={frames} frameIndex={index} showTrails={showTrails} />
+      <SimulationCanvas grid={grid} frames={frames} frameIndex={index} showTrails={showTrails} showHeatmap={showHeatmap} monochrome={plain} />
 
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" className={button} onClick={() => { setPlaying(false); setIndex(0); }} aria-label="最初へ">
@@ -114,6 +116,7 @@ export function SimulationPlayer({ grid, frames, costs }: Props) {
           <input type="checkbox" checked={showTrails} onChange={(e) => setShowTrails(e.target.checked)} />
           軌跡
         </label>
+        <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={showHeatmap} onChange={e => setShowHeatmap(e.target.checked)} />重要度 Φ</label>
       </div>
 
       <div className="flex items-baseline gap-3 text-sm">

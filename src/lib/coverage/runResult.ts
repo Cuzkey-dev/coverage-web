@@ -1,24 +1,11 @@
 import type { PhiGrid, Point } from "./types";
 import type { SimulationResult } from "./simulate";
+import type { ExperimentSettings, QualitySample } from "./experiment";
 
 /**
- * Run.result（JSON カラム）に入れる形。
- *
- * 再生と比較に必要なものだけを持つ:
- *   - Φ そのもの（元画像は保存しないので、これが無いと再生できない）
- *   - 間引いた位置履歴
- *   - 全ステップの評価値
- *
- * 元画像は縮小版もサムネイルも保存しない。公開すると保存物は誰からも見えるので、
- * アップロードされた絵が他人の画面に出ないようにするため。
- * 一覧に出す豆ヒートマップは、保存済みの Φ から都度作る（downsamplePhi）。
- *
- * 間引きの方針:
- *   位置履歴は台数 × ステップ数 × 2 で膨らむので、保存するフレームを
- *   最大 MAX_STORED_FRAMES 枚に抑える。step 0 と最終 step は必ず残し、
- *   間は等間隔に抜く（stride = ceil(steps / (MAX_STORED_FRAMES - 1))）。
- *   評価値は 1 ステップ 1 数値で軽いので全ステップ残す。
- *   数値は小数 3 桁（位置は 2 桁）に丸める。40 台 × 300 ステップでも 200KB 弱に収まる。
+ * 保存済みバージョン1と互換の実行結果。元画像ファイルは含まないが、Φから輪郭は読み取れる。
+ * 旧seedの履歴はthinFramesで最大121枚へ、新規実行はexperiment.tsで台数に応じて間引く。
+ * いずれも先頭・最終フレームと全ステップのHを保持する。
  */
 
 export const RUN_RESULT_VERSION = 1;
@@ -36,6 +23,8 @@ export type RunResult = {
   finalCost: number;
   /** 元画像のファイル名（表示用）。画像そのものは保存しない */
   imageName?: string;
+  settings?: ExperimentSettings;
+  quality?: QualitySample[];
 };
 
 function round(v: number, digits: number): number {
@@ -105,17 +94,124 @@ export function parseRunResult(json: unknown): RunResult | null {
   ) {
     return null;
   }
+  const finite = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v);
+  if (
+    !Number.isInteger(grid.width) ||
+    !Number.isInteger(grid.height) ||
+    grid.width < 1 ||
+    grid.height < 1 ||
+    grid.width > 256 ||
+    grid.height > 256 ||
+    grid.phi.length !== grid.width * grid.height ||
+    !grid.phi.every((v) => finite(v) && v >= 0)
+  )
+    return null;
+  if (
+    !r.costs.length ||
+    r.costs.length > 3001 ||
+    !r.costs.every((v) => finite(v) && v >= 0) ||
+    !r.frames.length ||
+    r.frames.length > 121
+  )
+    return null;
+  let previous = -1,
+    agents = 0;
+  for (const frame of r.frames) {
+    if (
+      !frame ||
+      !Number.isInteger(frame.step) ||
+      frame.step <= previous ||
+      frame.step >= r.costs.length ||
+      !Array.isArray(frame.positions) ||
+      !frame.positions.length ||
+      frame.positions.length > 1200
+    )
+      return null;
+    if (agents && agents !== frame.positions.length) return null;
+    agents = frame.positions.length;
+    if (
+      !frame.positions.every(
+        (p: unknown) =>
+          Array.isArray(p) &&
+          p.length === 2 &&
+          finite(p[0]) &&
+          finite(p[1]) &&
+          p[0] >= -0.01 &&
+          p[1] >= -0.01 &&
+          p[0] <= (grid.width as number) &&
+          p[1] <= (grid.height as number),
+      )
+    )
+      return null;
+    previous = frame.step;
+  }
+  if (r.frames[0].step !== 0 || previous !== r.costs.length - 1) return null;
+  const settings = r.settings as ExperimentSettings | undefined;
+  if (
+    settings &&
+    (settings.algorithm !== "lloyd" ||
+      ![
+        "weighted",
+        "uniform",
+        "corner",
+        "half",
+        "boundary",
+        "lattice",
+      ].includes(settings.initialMode) ||
+      !Number.isInteger(settings.maxSteps) ||
+      settings.maxSteps < previous ||
+      settings.maxSteps > 3000 ||
+      !["converged", "limit"].includes(settings.stopReason))
+  )
+    return null;
+  const quality = r.quality as QualitySample[] | undefined;
+  if (quality) {
+    if (!Array.isArray(quality) || quality.length > 302) return null;
+    let last = -1;
+    for (const q of quality) {
+      if (
+        !q ||
+        !Number.isInteger(q.step) ||
+        q.step <= last ||
+        q.step > previous ||
+        !finite(q.meanEdgeDistance) ||
+        q.meanEdgeDistance < 0 ||
+        !finite(q.edgeCoverage) ||
+        q.edgeCoverage < 0 ||
+        q.edgeCoverage > 1
+      )
+        return null;
+      last = q.step;
+    }
+  }
   return {
     version: RUN_RESULT_VERSION,
-    seed: typeof r.seed === "number" ? r.seed : 0,
+    seed: finite(r.seed) ? r.seed : 0,
     grid: { width: grid.width, height: grid.height, phi: grid.phi as number[] },
     frames: r.frames as StoredFrame[],
     costs: r.costs as number[],
-    finalCost:
-      typeof r.finalCost === "number"
-        ? r.finalCost
-        : ((r.costs as number[]).at(-1) ?? 0),
+    finalCost: (r.costs as number[]).at(-1) ?? 0,
     imageName: typeof r.imageName === "string" ? r.imageName : undefined,
+    ...(settings
+      ? {
+          settings: {
+            algorithm: settings.algorithm,
+            initialMode: settings.initialMode,
+            maxSteps: settings.maxSteps,
+            stopReason: settings.stopReason,
+          },
+        }
+      : {}),
+    ...(quality
+      ? {
+          quality: quality.map((q) => ({
+            step: q.step,
+            meanEdgeDistance: q.meanEdgeDistance,
+            edgeCoverage: q.edgeCoverage,
+          })),
+        }
+      : {}),
   };
 }
 

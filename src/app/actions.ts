@@ -31,10 +31,10 @@ const MAX_TITLE_LENGTH = 100;
 
 /**
  * result の大きさの上限（文字数）。
- * 上限いっぱいの設定（128×128 のΦ・40台・300ステップ）でも 300KB 程度なので、
- * その倍を上限にしておく。Server Action 自体の上限は 1MB。
+ * 1,200台・256×256セルの結果にも対応。数値配列中心なので文字数で制限する。
+ * Server Actionの上限2MBに対して、送信時の付帯情報分の余裕を残す。
  */
-const MAX_RESULT_CHARS = 600_000;
+const MAX_RESULT_CHARS = 1_800_000;
 
 export async function saveRun(input: SaveRunInput): Promise<SaveRunOutput> {
   const title = String(input.title ?? "").trim();
@@ -67,6 +67,9 @@ export async function saveRun(input: SaveRunInput): Promise<SaveRunOutput> {
     seed: result.seed,
   });
   const phiConfig = sanitizePhiConfig(input.phiConfig);
+  if (options.agents !== result.frames[0].positions.length || options.steps !== result.costs.length - 1 || phiConfig.gridWidth !== result.grid.width || phiConfig.gridHeight !== result.grid.height) {
+    return { ok: false, error: "実行条件と結果が一致しません。再実行してください" };
+  }
 
   try {
     const id = await createRun({
