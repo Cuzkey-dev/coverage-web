@@ -30,14 +30,14 @@ export function CompareView({ a, b }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {[
           { run: a, color: COLOR_A, tag: "A" },
           { run: b, color: COLOR_B, tag: "B" },
         ].map(({ run, color, tag }) => (
           <div
             key={run.id}
-            className="flex items-start gap-3 rounded border p-3"
+            className="flex min-w-0 items-start gap-3 rounded border p-3"
             style={{ borderColor: color }}
           >
             <span
@@ -50,7 +50,7 @@ export function CompareView({ a, b }: Props) {
               <Link href={`/runs/${run.id}`} className="truncate font-medium hover:underline">
                 {run.title}
               </Link>
-              <span className="text-xs text-neutral-500">
+              <span className="break-all text-xs text-neutral-500">
                 {formatDate(run.createdAt)}
                 {run.result?.imageName && ` ・ ${run.result.imageName}`}
               </span>
@@ -77,30 +77,30 @@ export function CompareView({ a, b }: Props) {
 
         <section className="flex flex-col gap-3">
           <h2 className="font-semibold">最終評価値 H</h2>
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            <div className="flex flex-col">
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+            <div className="flex min-w-0 flex-col">
               <span className="text-neutral-500">A</span>
-              <span className="font-mono text-xl tabular-nums" style={{ color: COLOR_A }}>
+              <span className="break-all font-mono text-xl tabular-nums" style={{ color: COLOR_A }}>
                 {formatCost(finalA)}
               </span>
             </div>
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <span className="text-neutral-500">B</span>
-              <span className="font-mono text-xl tabular-nums" style={{ color: COLOR_B }}>
+              <span className="break-all font-mono text-xl tabular-nums" style={{ color: COLOR_B }}>
                 {formatCost(finalB)}
               </span>
             </div>
-            <div className="flex flex-col">
+            <div className="col-span-2 flex min-w-0 flex-col sm:col-span-1">
               <span className="text-neutral-500">B − A</span>
-              <span className="font-mono text-xl tabular-nums">
+              <span className="break-all font-mono text-xl tabular-nums">
                 {delta === null ? "—" : `${delta > 0 ? "+" : ""}${formatCost(delta)}`}
                 {ratio !== null && (
-                  <span className="ml-1 text-sm text-neutral-500">({ratio}%)</span>
+                  <span className="block text-sm text-neutral-500">({ratio}%)</span>
                 )}
               </span>
             </div>
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="break-all text-xs text-neutral-500">
             H は各セルの「担当ロボットまでの距離の2乗 × Φ」の総和。小さいほど重要な場所を近くで覆えている。
             グリッド解像度が違う実行どうしは絶対値をそのまま比べられないので、推移の形で見る。
           </p>
@@ -115,7 +115,7 @@ export function CompareView({ a, b }: Props) {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">最終配置</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[a, b].map((run, i) => (
             <div key={run.id} className="flex flex-col gap-1">
               <span className="text-sm text-neutral-500">
