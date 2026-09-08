@@ -1,5 +1,7 @@
 # Coverage Web
 
+公開アプリ: [Coverage Web](https://coverage-web-tau.vercel.app)
+
 画像から重要度関数 Φ を設計し、二輪移動ロボットの**被覆制御シミュレーション**を実行・保存・比較できる Web アプリケーションです。
 
 修士研究（東京都立大学 児島研究室・ロボットマスゲームにおける被覆制御）で使っている MATLAB のシミュレーションを、
@@ -61,10 +63,10 @@
 | --- | --- |
 | フレームワーク | Next.js 16 (App Router) / React 19 / TypeScript |
 | スタイル | Tailwind CSS v4 |
-| データベース | PostgreSQL / Prisma 7（ドライバアダプタ） |
+| データベース | Neon（PostgreSQL） / Prisma 7（ドライバアダプタ） |
 | テスト | Vitest |
 | CI | GitHub Actions（typecheck / lint / test / build） |
-| ホスティング | Vercel（予定） |
+| ホスティング | [Vercel](https://coverage-web-tau.vercel.app) |
 
 画像処理・シミュレーション・描画はすべて自前の TypeScript で、外部ライブラリ（OpenCV やグラフ描画）は使っていません。
 
@@ -86,7 +88,7 @@
 - **計算量の上限は UI で縛る**。`weightedCentroids` と H の計算は毎ステップ全セル × 全台数を走査するので、
   グリッドは 1 辺 128、台数 40、ステップ 300 を上限にしている（この上限で約 0.5 秒）。実行は 16ms ずつ区切って回し、画面を固めない。
   画像は長辺 512 画素に縮めてからエッジ検出する。
-- **実行結果は当面 JSON カラムで持つ**。`Run.result` に入れるのは Φ そのもの・間引いた位置履歴・全ステップの評価値・元画像のサムネイル。
+- **実行結果は当面 JSON カラムで持つ**。`Run.result` に入れるのは Φ そのもの・間引いた位置履歴・全ステップの評価値。
   元画像は保存しないので、再生に必要な Φ を結果側に持たせる。
   位置履歴は最大 121 フレームに間引く（先頭と最終は必ず残し、間は等間隔）。評価値は 1 ステップ 1 数値なので全部残す。
   40 台 × 300 ステップでも 200KB 弱に収まる。
@@ -105,7 +107,7 @@
   結果として保存データも軽くなり、「何を重視した実行か」というカードに出したい情報にも近い。
 - **開発用のローカル PostgreSQL**。手元に本番 DB が無くても動かせるよう、`npm run db:local` で
   [embedded-postgres](https://github.com/leinelissen/embedded-postgres) を `.local-db/` に立てる（git 管理外）。
-  2026-09-05 時点の `.env` はこのローカル DB を指している。Neon を使うときは `DATABASE_URL` を差し替えて `npm run db:push` する。
+  ローカル DB を使うときは `.env` の `DATABASE_URL` を開発用 URL に設定する。公開環境は Neon に接続している。
 
 ## 開発
 
