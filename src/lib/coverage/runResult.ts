@@ -199,7 +199,10 @@ export function parseRunResult(json: unknown): RunResult | null {
     version: RUN_RESULT_VERSION,
     seed: finite(r.seed) ? r.seed : 0,
     grid: { width: grid.width, height: grid.height, phi: grid.phi as number[] },
-    frames: r.frames as StoredFrame[],
+    frames: (r.frames as StoredFrame[]).map((frame) => ({
+      step: frame.step,
+      positions: frame.positions.map(([x, y]) => [x, y]),
+    })),
     costs: r.costs as number[],
     finalCost: (r.costs as number[]).at(-1) ?? 0,
     imageName: typeof r.imageName === "string" ? r.imageName : undefined,

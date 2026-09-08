@@ -62,6 +62,10 @@ describe("compute API boundary", () => {
     const r = {
       ...result(),
       privateMetadata: "do-not-forward",
+      frames: result().frames.map((frame) => ({
+        ...frame,
+        privateMetadata: "do-not-forward",
+      })),
       settings: { ...result().settings, privateMetadata: "do-not-forward" },
     };
     const fetch = vi
