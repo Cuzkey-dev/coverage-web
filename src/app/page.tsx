@@ -7,15 +7,15 @@ export const dynamic = "force-dynamic";
 
 const steps = [
   {
-    title: "動くモデルを選ぶ",
-    body: "鳥・風車・顔の3種類から選ぶだけ。入力画像の準備は不要です。",
+    title: "モデルを選ぶ",
+    body: "鳥・風車・顔の入力画像と、それに対する追従結果を表示します。",
   },
   {
     title: "入力と動きを見比べる",
     body: "240台のロボットが、動く輪郭へ追従。止めたり速度を変えたりしながら、軌跡や輪郭を重ねて観察できます。",
   },
   {
-    title: "数式で仕組みを知る",
+    title: "計算方法を確認する",
     body: "時間で変わる重要度と、各ロボットの担当領域・重心・追従入力を解説します。",
   },
 ];
@@ -35,15 +35,15 @@ export default async function Home() {
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-6 py-12">
       <section className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold tracking-tight">
-          動くかたちを、ロボットの群れで。
+          被覆制御シミュレータ
         </h1>
         <p className="max-w-2xl text-neutral-600 dark:text-neutral-400">
-          鳥の羽ばたき、風車の回転、顔の表情。時間とともに変わる入力に、ロボット群が追従する様子を見てみましょう。
+          入力画像から重要度を求め、ロボットの配置を計算します。時変入力の追従と静止画像のシミュレーションを確認できます。
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/motion"
-            className="rounded bg-sky-600 px-4 py-2 font-medium text-white hover:bg-sky-700"
+            className="rounded bg-slate-700 px-4 py-2 font-medium text-white hover:bg-slate-800"
           >
             3つの動くモデルを見る
           </Link>

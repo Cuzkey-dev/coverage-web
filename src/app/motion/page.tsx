@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { MotionGallery } from "@/components/MotionGallery";
-
 export const metadata: Metadata = {
-  title: "動くモデル | Coverage Web",
+  title: "時変重要度による被覆制御 | Coverage Web",
   description:
-    "鳥の羽ばたき、風車の回転、顔の表情。時間とともに変わる重要度にロボット群が追従する3つのアニメーション。",
+    "入力画像の変化に対するロボット群の追従を、画像・抽出輪郭・ロボット配置で比較します。",
 };
-
 function Equation({
   children,
   label,
@@ -18,74 +16,62 @@ function Equation({
     <div
       role="math"
       aria-label={label}
-      className="my-4 overflow-x-auto rounded-xl bg-slate-100 p-4 font-serif text-lg leading-loose tracking-wide dark:bg-slate-900"
+      className="my-4 overflow-x-auto bg-slate-50 p-4 font-serif text-lg leading-loose"
     >
       {children}
     </div>
   );
 }
-
 export default function MotionPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 space-y-10 px-5 py-10 sm:px-6 sm:py-14">
-      <header className="max-w-3xl space-y-4">
-        <p className="font-mono text-xs tracking-[.22em] text-teal-700 dark:text-teal-300">
-          COVERAGE IN MOTION
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          動くかたちを、ロボットの群れで。
+    <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-8 text-slate-800 sm:px-6">
+      <header className="space-y-3">
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          時変重要度による被覆制御
         </h1>
-        <p className="text-base leading-relaxed text-slate-600 dark:text-slate-400">
-          羽ばたく鳥、回る風車、移り変わる表情。入力の動きに合わせて「ロボットを集めたい場所」を更新すると、群れの配置も変わっていきます。
+        <p className="max-w-3xl leading-7 text-slate-600">
+          入力画像の変化に合わせて重要度関数を更新し、ロボット群の配置を計算します。鳥・風車・顔の3種類について、入力画像、抽出した輪郭、ロボットの動きを比較できます。
         </p>
         <a
           href="#how-it-works"
-          className="inline-block text-sm text-teal-700 underline underline-offset-4 dark:text-teal-300"
+          className="inline-block text-sm text-slate-700 underline underline-offset-4"
         >
-          時間変化する重要度と数式を見る ↓
+          計算方法と数式
         </a>
       </header>
       <MotionGallery />
       <section
         id="how-it-works"
-        className="scroll-mt-6 space-y-7 border-t border-slate-200 pt-10 dark:border-slate-800"
+        className="scroll-mt-6 space-y-6 border-t border-slate-200 pt-8"
       >
-        <div>
-          <p className="font-mono text-xs tracking-widest text-teal-700 dark:text-teal-300">
-            HOW IT WORKS
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">
-            重要度を、時間とともに変える
-          </h2>
-          <p className="mt-3 max-w-3xl leading-relaxed text-slate-600 dark:text-slate-400">
-            入力画像の各時刻の形から重要度をつくり、その時刻の重心を追いかけます。ロボットの位置を入力の輪郭へ直接貼り付けているわけではありません。次の式は被覆制御の一般的な考え方を説明するものです。
-          </p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
+        <h2 className="text-xl font-semibold">計算方法</h2>
+        <p className="max-w-3xl leading-7">
+          各時刻の入力画像から輪郭を抽出し、輪郭付近の重要度を高くします。各ロボットは担当領域の重み付き重心へ向かいます。以下では、この処理を一般的な被覆制御の式で説明します。
+        </p>
+        <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
           <article className="min-w-0">
-            <h3 className="font-semibold">1. 集まる場所が動く</h3>
-            <Equation label="位置q、時刻tの重要度はファイq t。入力画像I q tから生成する。">
-              I(q,t) → Φ(q,t) ≥ 0
+            <h3 className="font-semibold">入力画像から重要度関数を求める</h3>
+            <Equation label="入力画像Iから輪郭Eを抽出し、時変重要度ファイを求める。">
+              I(q,t) → E(q,t) → Φ(q,t)
             </Equation>
             <p className="text-sm leading-7">
-              qは領域内の位置、tは時刻、Iは入力画像、Φはその場所の重要度です。翼や羽根、口の形が変わるたびに分布を更新します。左の図は入力の輪郭を示しており、重要度そのものの表示ではありません。
+              qは領域内の位置、tは時刻です。Iは入力画像、Eは画像処理で得た輪郭、Φは重要度関数を表します。中央の図は実際に計算に使った輪郭で、重要度関数そのものではありません。
             </p>
           </article>
           <article className="min-w-0">
-            <h3 className="font-semibold">2. 各ロボットが担当する領域</h3>
-            <Equation label="ボロノイ領域Viは、全ロボットの中でロボットiに最も近い点qの集合。">
+            <h3 className="font-semibold">ロボットごとに領域を分担する</h3>
+            <Equation label="ボロノイ領域Viは、ロボットiに最も近い点qの集合。">
               V<sub>i</sub>(t) = {"{"}q ∈ Q : ‖q − p<sub>i</sub>(t)‖ ≤ ‖q − p
               <sub>j</sub>(t)‖, ∀j{"}"}
             </Equation>
             <p className="text-sm leading-7">
-              Qは全体の領域、p<sub>i</sub>
-              はロボットiの位置です。最も近いロボットごとに領域を分担するので、ロボットが動くと担当領域V
-              <sub>i</sub>も変化します。
+              Qは全体の領域、p<sub>i</sub>はロボットiの位置、V<sub>i</sub>
+              はそのロボットに最も近い点の集合です。ロボットが移動すると、担当領域も変わります。
             </p>
           </article>
           <article className="min-w-0">
-            <h3 className="font-semibold">3. 今の重要度で重心を求める</h3>
-            <Equation label="重心ciは、Vi上のqファイの積分を、Vi上のファイの積分で割ったもの。">
+            <h3 className="font-semibold">重み付き重心を求める</h3>
+            <Equation label="重心ciは、Vi上のqファイの積分をファイの積分で割ったもの。">
               c<sub>i</sub>(t) ={" "}
               <span className="inline-flex flex-col text-center align-middle">
                 <span className="border-b border-current px-2">
@@ -98,53 +84,35 @@ export default function MotionPage() {
             </Equation>
             <p className="text-sm leading-7">
               c<sub>i</sub>
-              は重要度で重み付けした担当領域の重心です。重要度が高い場所ほど重心を強く引き寄せます。分母は担当領域の重要度の合計で、正の場合を考えます。
+              は担当領域内の重要度で重み付けした重心です。重要度が高い位置ほど重心に強く影響します。分母は担当領域の重要度の合計で、正の場合を考えます。
             </p>
           </article>
           <article className="min-w-0">
-            <h3 className="font-semibold">4. 重心へ向かって移動する</h3>
-            <Equation label="基本的な被覆入力はuiイコールkかけるciマイナスpi。kは正。">
+            <h3 className="font-semibold">重心に向かう入力を与える</h3>
+            <Equation label="被覆入力uiはゲインkと重心ciから位置piを引いた差の積。">
               u<sub>i</sub>
               <sup>cov</sup>(t) = k [c<sub>i</sub>(t) − p<sub>i</sub>(t)],　k
               &gt; 0
             </Equation>
             <p className="text-sm leading-7">
-              u<sub>i</sub>
-              <sup>cov</sup>
-              は重心へ近づく基本入力、kは応答の強さです。この方向をもとに移動を計算します。再生結果には移動モデルとロボット間の相互作用も含まれるため、この式だけで軌跡全体を表すものではありません。
+              kは追従の強さを決めるゲインです。この入力にロボット間の相互作用と移動モデルを適用し、並進速度・旋回速度の上限内で位置を更新します。各時刻の重要度に対して、この計算を繰り返します。
             </p>
           </article>
         </div>
-        <article className="rounded-2xl border border-teal-200 p-5 dark:border-teal-900">
-          <h3 className="font-semibold">
-            動きを先取りして、追従の遅れを減らす
-          </h3>
-          <Equation label="追従入力は被覆入力と、入力の動きを先取りするフィードフォワード入力の和。">
-            u<sub>i</sub>
-            <sup>track</sup>(t) = u<sub>i</sub>
-            <sup>cov</sup>(t) + u<sub>i</sub>
-            <sup>ff</sup>(t)
-          </Equation>
-          <p className="text-sm leading-7">
-            今回の3つの入力は次にどう動くかが分かっています。その移動方向と速さを先取りする入力u
-            <sub>i</sub>
-            <sup>ff</sup>
-            を加え、重心へ近づく動きと組み合わせます。風車では羽根に沿って回る方向へ、鳥では翼が動く方向へ補助します。計算時には並進速度と旋回速度の上限も設けています。ここに示すのは一般的な構成で、具体的な生成式や係数は非公開です。
-          </p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
-          <h3 className="font-semibold">
-            「動く目標への追従」と「静止した形への収束」は別のこと
-          </h3>
-          <Equation label="被覆目的関数Hは、各担当領域における位置誤差の二乗と重要度の積を積分し、全ロボットで足したもの。">
+        <article>
+          <h3 className="font-semibold">時変入力への追従</h3>
+          <Equation label="被覆目的関数Hは各担当領域での距離の二乗と重要度の積を積分して合計したもの。">
             H(P,t) = ∑<sub>i</sub> ∫<sub>Vᵢ(t)</sub> ‖q − p<sub>i</sub>‖² Φ(q,t)
             dq
           </Equation>
           <p className="text-sm leading-7">
-            Pは全ロボットの配置です。Φが変化すると目標も動くため、Hが常に減少するとは限りません。速い変形では追従の遅れが生じます。風車の支柱と軸は入力上では固定ですが、同じロボットがそこに固定されるわけではありません。これは配置の追従を見るシミュレーションであり、実機での安全性や厳密な追従を保証するものではありません。
+            Pは全ロボットの配置です。入力画像が動くため、配置が収束する前から重要度関数が変わり、Hは単調に減少するとは限りません。入力の変化速度に対する遅れを、ゲインや速度上限、計算刻みを調整して確認しています。風車の軸は入力上では固定されていますが、特定のロボットを固定しているわけではありません。
           </p>
         </article>
-        <p className="text-xs leading-6 text-slate-500 dark:text-slate-400">
+        <p className="text-sm leading-7 text-slate-600">
+          結果はシミュレーションによるものです。掲載した式は、被覆制御の基本的な考え方を示しています。
+        </p>
+        <p className="text-xs leading-6 text-slate-600">
           参考：
           <a
             className="underline"
@@ -154,7 +122,6 @@ export default function MotionPage() {
           >
             Cortés et al., Coverage control for mobile sensing networks
           </a>
-          。一般的な被覆制御の説明を掲載しています。研究固有の重要度の生成式・制御実装・内部パラメータは公開していません。
         </p>
       </section>
     </main>

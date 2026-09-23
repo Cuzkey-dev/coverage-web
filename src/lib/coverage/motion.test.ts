@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { frameIndex, motionModels, parseMotionClip } from "./motion";
-
-describe("public motion clips", () => {
-  for (const model of motionModels) {
-    it(`${model.id}: validates complete synchronized trajectories with no private fields`, () => {
+import { readFileSync, statSync } from "node:fs";
+import {
+  frameIndex,
+  motionModels,
+  parseMotionClip,
+  spriteStyle,
+} from "./motion";
+describe("conference motion clips", () => {
+  for (const model of motionModels)
+    it(`${model.id}: starts in motion and exposes only presentation data`, () => {
       const data = JSON.parse(
         readFileSync(`public/motion/${model.id}.json`, "utf8"),
       );
@@ -18,37 +22,43 @@ describe("public motion clips", () => {
           "fps",
           "duration",
           "settleDuration",
+          "atlas",
           "frames",
         ].sort(),
       );
       const clip = parseMotionClip(data, model.id);
+      expect(clip.settleDuration).toBe(0);
+      expect(clip.frames[0].phase).toBe(0);
+      expect(clip.frames[1].phase).toBeGreaterThan(0);
+      expect(clip.frames.at(-1)!.phase).toBeCloseTo(4 * Math.PI, 5);
       for (const f of data.frames)
         expect(Object.keys(f).sort()).toEqual(
-          ["time", "phase", "paths", "positions", "meanDistance"].sort(),
+          ["time", "phase", "positions", "meanDistance"].sort(),
         );
-      expect(clip.frames[0].time).toBe(0);
-      expect(clip.frames.at(-1)!.time).toBe(clip.duration);
-      const at = (t: number) => clip.frames[frameIndex(t, clip)];
-      expect(at(4).paths).toEqual(at(14).paths);
-      expect(at(14).paths).toEqual(at(24).paths);
-      expect(at(4).paths).not.toEqual(at(6.5).paths);
-      expect(at(4).positions).not.toEqual(at(6.5).positions);
-      expect(at(4).meanDistance).toBeLessThan(clip.frames[0].meanDistance);
+      expect(clip.frames[24].positions).not.toEqual(clip.frames[0].positions);
+      expect(clip.frames[48].meanDistance).toBeLessThan(
+        clip.frames[0].meanDistance,
+      );
+      for (const layer of ["input", "edge"] as const)
+        expect(
+          statSync(`public/motion/${model.id}-${layer}.webp`).size,
+        ).toBeGreaterThan(1000);
       expect(frameIndex(-1, clip)).toBe(0);
-      expect(frameIndex(100, clip)).toBe(clip.frames.length - 1);
-      if (model.id === "windmill") {
-        for (const f of clip.frames)
-          expect(f.paths.slice(0, 2)).toEqual(at(4).paths.slice(0, 2));
-      }
-      const malformed = structuredClone(data);
-      malformed.frames[20].positions[0][0] = null;
-      expect(() => parseMotionClip(malformed, model.id)).toThrow();
+      expect(frameIndex(100, clip)).toBe(576);
+      expect(spriteStyle(model.id, "input", 0).backgroundPosition).toBe(
+        "0% 0%",
+      );
+      expect(spriteStyle(model.id, "input", 576).backgroundPosition).toBe(
+        "0% 100%",
+      );
+      const broken = structuredClone(data);
+      broken.frames[10].positions[0][0] = null;
+      expect(() => parseMotionClip(broken, model.id)).toThrow();
+      expect(() =>
+        parseMotionClip({ ...data, settleDuration: 4 }, model.id),
+      ).toThrow();
       expect(() =>
         parseMotionClip({ ...data, frames: data.frames.slice(1) }, model.id),
       ).toThrow();
-      expect(() =>
-        parseMotionClip({ ...data, kind: "unknown" }, model.id),
-      ).toThrow();
     });
-  }
 });

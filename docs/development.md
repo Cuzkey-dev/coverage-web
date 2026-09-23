@@ -13,11 +13,11 @@ cp .env.example .env
 
 PowerShellでは、コピーに`Copy-Item .env.example .env`を使用できます。`.env`に次の環境変数を設定します。
 
-| 変数 | 用途 |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQLへの接続文字列。Neonではプール接続を使用 |
-| `COVERAGE_ENGINE_URL` | 計算サービスのURL |
-| `COVERAGE_ENGINE_TOKEN` | 計算サービスの認証トークン |
+| 変数                    | 用途                                               |
+| ----------------------- | -------------------------------------------------- |
+| `DATABASE_URL`          | PostgreSQLへの接続文字列。Neonではプール接続を使用 |
+| `COVERAGE_ENGINE_URL`   | 計算サービスのURL                                  |
+| `COVERAGE_ENGINE_TOKEN` | 計算サービスの認証トークン                         |
 
 これらはサーバー専用です。`NEXT_PUBLIC_`を付けず、値をGitやログに記録しないでください。
 
@@ -45,23 +45,25 @@ npm run build
 
 ## 主な構成
 
-| ファイル | 役割 |
-| --- | --- |
-| `src/app/api/simulate/route.ts` | 計算サービスとの認証、ストリーム中継、応答項目の制限 |
-| `src/lib/coverage/serverExperiment.ts` | 画像のグレースケール変換、実行要求、進捗受信、中止 |
-| `src/lib/coverage/runResult.ts` | 保存データの検証。既存のバージョン1形式にも対応 |
-| `src/lib/coverage/samples.ts` | サンプル画像の生成 |
-| `src/lib/coverage/experiment.ts`、`phi.ts`、`experiment.worker.ts` | 旧モデルの計算と互換処理 |
+| ファイル                                                           | 役割                                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------------- |
+| `src/app/api/simulate/route.ts`                                    | 計算サービスとの認証、ストリーム中継、応答項目の制限 |
+| `src/lib/coverage/serverExperiment.ts`                             | 画像のグレースケール変換、実行要求、進捗受信、中止   |
+| `src/lib/coverage/runResult.ts`                                    | 保存データの検証。既存のバージョン1形式にも対応      |
+| `src/lib/coverage/samples.ts`                                      | サンプル画像の生成                                   |
+| `src/lib/coverage/experiment.ts`、`phi.ts`、`experiment.worker.ts` | 旧モデルの計算と互換処理                             |
 
 ## 結果データの読み方
 
 ### 動くモデル `/motion`
 
-`public/motion/{bird,windmill,face}.json` は非公開計算リポジトリの `validation/build_motion_demos.py` で生成した再生専用データです。計算コードを公開リポジトリへ移さないでください。各モデルは24秒、24fps、577フレーム。更新時は3モデルを生成・検証してから公開データを置換します。
+`public/motion/{bird,windmill,face}.json` は非公開計算リポジトリの `validation/build_motion_demos.py` で生成した再生専用データです。計算コードを公開リポジトリへ移さないでください。各モデルは24秒、24fps、577フレーム（version 2）。停止区間なし、標準再生2倍。更新時は3モデルを生成・検証してから公開データを置換します。
 
-`paths`は各時刻の入力輪郭、`positions`は同時刻のロボット位置（順序は個体ごとに固定）、`meanDistance`は入力輪郭までの平均距離です。座標は256×256、yは下向き。重要度そのものを示すフィールドはありません。`time` は動画内の時刻で、実機の経過時間ではありません。
+`positions`は各時刻のロボット位置（個体順序固定）、`meanDistance`は抽出輪郭までの平均距離。座標は256×256、yは下向きです。`time`はシミュレーション時刻で、実機の経過時間ではありません。`settleDuration`は0に固定。重要度分布や内部係数は含みません。
 
-`motion.test.ts`で公開項目の限定・有限座標・時刻と台数の整合・周期・固定軸を確認します。静止画の計算API・DBを使わず再生でき、静止画モデルの代替計算には使いません。生成コードの変更時は非公開側に比較結果を残してください。
+`{kind}-input.webp` と `{kind}-edge.webp` は各フレームの画像を12列×49行、128px角で並べたロスレス画像です。後者は実際のCanny出力です。画像から輪郭への対応は非公開側の `verify_motion_assets.py` で全フレーム照合します。プレイヤーは画像の読込み後に再生し、同じフレーム番号の領域を表示します。
+
+`motion.test.ts`で公開項目の限定・有限座標・時刻と台数の整合・開始時からの位相変化・画像配置を確認します。静止画の計算API・DBを使わず再生でき、静止画モデルの代替計算には使いません。生成コードの変更時は非公開側に比較結果を残してください。
 
 表示する参照輪郭は、入力画像から得た輪郭です。計算エンジン内部の重要度分布とは別のデータで、内部の分布や制御パラメータは応答に含みません。
 
