@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const description =
-  "6種類の画像と最大1,200台の点ロボットで被覆制御を検証。初期配置・台数の比較、配置図PNG・評価値CSVの出力に対応";
+  "鳥の羽ばたき・風車の回転・顔の表情にロボット群が追従する3つの動くモデル。時間変化する重要度の数式解説と、静止画像の被覆制御シミュレーション。";
 
 export const metadata: Metadata = {
   title: "Coverage Web — 被覆制御シミュレータ",

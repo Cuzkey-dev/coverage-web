@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const links = [
+  { href: "/motion", label: "動くモデル" },
   { href: "/new", label: "新規実行" },
   { href: "/runs", label: "保存した実行" },
 ];
@@ -8,7 +9,7 @@ const links = [
 export function SiteHeader() {
   return (
     <header className="border-b border-neutral-200 dark:border-neutral-800">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3">
         <Link href="/" className="font-semibold tracking-tight">
           Coverage Web
         </Link>

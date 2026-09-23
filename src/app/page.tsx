@@ -7,16 +7,16 @@ export const dynamic = "force-dynamic";
 
 const steps = [
   {
-    title: "描きたい画像を選ぶ",
-    body: "6種類のサンプルや手元の画像を選び、ロボットで表現したい輪郭を決める。",
+    title: "動くモデルを選ぶ",
+    body: "鳥・風車・顔の3種類から選ぶだけ。入力画像の準備は不要です。",
   },
   {
-    title: "被覆制御を実行する",
-    body: "最大1,200台・6種類の初期配置に対応。研究モデルで移動を計算し、台数や初期配置を変えた4条件を一括比較する。",
+    title: "入力と動きを見比べる",
+    body: "240台のロボットが、動く輪郭へ追従。止めたり速度を変えたりしながら、軌跡や輪郭を重ねて観察できます。",
   },
   {
-    title: "保存して比べる",
-    body: "配置の評価値と推移を確認。配置図PNG、評価値と座標CSVを出力し、実行を保存する。",
+    title: "数式で仕組みを知る",
+    body: "時間で変わる重要度と、各ロボットの担当領域・重心・追従入力を解説します。",
   },
 ];
 
@@ -27,29 +27,31 @@ export default async function Home() {
     runs = await listRuns(6);
   } catch (e) {
     console.error(e);
-    dbError = "データベースに接続できません。DATABASE_URL の設定と DB の起動を確認してください。";
+    dbError =
+      "データベースに接続できません。DATABASE_URL の設定と DB の起動を確認してください。";
   }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-6 py-12">
       <section className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">被覆制御シミュレータ</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          動くかたちを、ロボットの群れで。
+        </h1>
         <p className="max-w-2xl text-neutral-600 dark:text-neutral-400">
-          画像の輪郭を、たくさんのロボットで表現する。
-          最大1,200台の配置を計算し、画像・台数・初期配置による違いを比較するツールです。
+          鳥の羽ばたき、風車の回転、顔の表情。時間とともに変わる入力に、ロボット群が追従する様子を見てみましょう。
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
-            href="/new"
+            href="/motion"
             className="rounded bg-sky-600 px-4 py-2 font-medium text-white hover:bg-sky-700"
           >
-            新規実行を始める
+            3つの動くモデルを見る
           </Link>
           <Link
-            href="/runs"
+            href="/new"
             className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
           >
-            保存した実行を見る
+            静止画像で実行する
           </Link>
         </div>
       </section>
@@ -60,9 +62,13 @@ export default async function Home() {
             key={s.title}
             className="flex flex-col gap-2 rounded border border-neutral-200 p-4 dark:border-neutral-800"
           >
-            <div className="text-xs font-mono text-neutral-500">STEP {i + 1}</div>
+            <div className="text-xs font-mono text-neutral-500">
+              STEP {i + 1}
+            </div>
             <h2 className="font-semibold">{s.title}</h2>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">{s.body}</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              {s.body}
+            </p>
           </div>
         ))}
       </section>
