@@ -43,13 +43,13 @@ export default async function Home() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/motion"
-            className="rounded bg-slate-700 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            className="motion-button motion-play"
           >
             3つの動くモデルを見る
           </Link>
           <Link
             href="/new"
-            className="rounded border border-neutral-300 px-4 py-2 font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            className="motion-button"
           >
             静止画像で実行する
           </Link>

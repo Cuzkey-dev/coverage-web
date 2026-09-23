@@ -9,8 +9,32 @@ import {
   type MotionKind,
 } from "@/lib/coverage/motion";
 
-const button =
-  "rounded border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-100";
+const button = "motion-button";
+function ModelIcon({ kind }: { kind: MotionKind }) {
+  return (
+    <svg viewBox="0 0 48 48" className="model-icon" aria-hidden="true">
+      {kind === "bird" ? (
+        <path
+          d="M4 28 14 25Q20 20 27 23L19 7Q30 9 33 22Q38 16 41 22L46 25 39 27Q30 36 16 29L5 33Z"
+          fill="currentColor"
+        />
+      ) : kind === "windmill" ? (
+        <g fill="currentColor">
+          <path d="m23 25-2 19h6l-2-19ZM24 23 17 5 24 2 28 19ZM25 23 43 16 46 23 29 27ZM25 25 32 43 25 46 21 29ZM23 25 5 32 2 25 19 21Z" />
+          <circle cx="24" cy="24" r="4" />
+        </g>
+      ) : (
+        <g fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="24" cy="24" r="19" />
+          <path
+            d="M13 20q4-5 8 0m7 0q4-5 8 0M15 29q9 10 18 0"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
+    </svg>
+  );
+}
 function Player({ kind }: { kind: MotionKind }) {
   const [clip, setClip] = useState<MotionClip | null>(null);
   const [error, setError] = useState("");
@@ -107,28 +131,36 @@ function Player({ kind }: { kind: MotionKind }) {
     setTime(t);
   };
   return (
-    <div className="space-y-4">
-      <div className="grid gap-5 md:grid-cols-3">
+    <div className="motion-player">
+      <div className="motion-figures grid gap-6 md:grid-cols-3">
         <figure className="min-w-0">
-          <figcaption className="mb-2 font-medium">1. 入力画像</figcaption>
+          <figcaption>
+            <span className="step-number">01</span>入力画像
+            <span className="flow-arrow" aria-hidden="true">
+              →
+            </span>
+          </figcaption>
           <div
             role="img"
             aria-label="時間とともに変化する入力画像"
-            className="aspect-square w-full border border-slate-200 bg-white"
+            className="motion-image aspect-square w-full bg-white"
             style={spriteStyle(kind, "input", index)}
           />
           <p className="mt-2 text-sm text-slate-600">
-            塗りつぶした図形を画像として入力します。
+            動く画像を、そのまま入力に使います。
           </p>
         </figure>
         <figure className="min-w-0">
-          <figcaption className="mb-2 font-medium">
-            2. 画像処理で抽出した輪郭
+          <figcaption>
+            <span className="step-number">02</span>抽出した輪郭
+            <span className="flow-arrow" aria-hidden="true">
+              →
+            </span>
           </figcaption>
           <div
             role="img"
             aria-label="入力画像から実際に抽出した輪郭"
-            className="aspect-square w-full border border-slate-200 bg-white"
+            className="motion-image aspect-square w-full bg-white"
             style={spriteStyle(kind, "edge", index)}
           />
           <p className="mt-2 text-sm text-slate-600">
@@ -136,10 +168,10 @@ function Player({ kind }: { kind: MotionKind }) {
           </p>
         </figure>
         <figure className="min-w-0">
-          <figcaption className="mb-2 font-medium">
-            3. ロボットの配置
+          <figcaption>
+            <span className="step-number">03</span>ロボットの配置
           </figcaption>
-          <div className="relative aspect-square border border-slate-200 bg-white">
+          <div className="motion-image relative aspect-square bg-white">
             {overlay && (
               <div
                 aria-hidden="true"
@@ -180,7 +212,7 @@ function Player({ kind }: { kind: MotionKind }) {
           </p>
         </figure>
       </div>
-      <div className="space-y-3 border-y border-slate-200 py-4">
+      <div className="motion-controls space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">計算時刻</span>
           <input
@@ -194,7 +226,7 @@ function Player({ kind }: { kind: MotionKind }) {
               setPlaying(false);
               seek(Number(e.target.value));
             }}
-            className="min-w-24 flex-1 accent-slate-600"
+            className="min-w-24 flex-1 accent-[#326b70]"
           />
           <output className="font-mono text-xs tabular-nums">
             {time.toFixed(1)} / {clip.duration} s
@@ -202,7 +234,7 @@ function Player({ kind }: { kind: MotionKind }) {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
-            className={`${button} min-w-24`}
+            className={`${button} motion-play min-w-24`}
             onClick={() => {
               if (time >= clip.duration) seek(0);
               setPlaying((v) => !v);
@@ -225,7 +257,7 @@ function Player({ kind }: { kind: MotionKind }) {
               aria-label="再生速度"
               value={speed}
               onChange={(e) => setSpeed(Number(e.target.value))}
-              className="rounded border border-slate-300 bg-white p-2"
+              className="rounded-md border border-[#cdd9d8] bg-white p-2"
             >
               {[0.5, 1, 1.5, 2].map((v) => (
                 <option key={v} value={v}>
@@ -259,7 +291,7 @@ function Player({ kind }: { kind: MotionKind }) {
             軌跡を表示
           </label>
         </div>
-        <p className="text-sm leading-6 text-slate-600">
+        <p className="max-w-4xl text-xs leading-6 text-slate-600">
           入力は開始時から動きます。ロボットの初期配置は全域ランダムです。24秒分の計算結果を標準2倍速（12秒）で再生します。再生速度を変えても計算結果は変わりません。
         </p>
       </div>
@@ -269,18 +301,21 @@ function Player({ kind }: { kind: MotionKind }) {
 export function MotionGallery() {
   const [kind, setKind] = useState<MotionKind>("bird");
   return (
-    <section aria-label="モデルの選択" className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <section aria-label="モデルの選択" className="motion-lab">
+      <div className="model-tabs grid grid-cols-3 gap-2 sm:gap-3">
         {motionModels.map((m) => (
           <button
             key={m.id}
             aria-pressed={kind === m.id}
             onClick={() => setKind(m.id)}
-            className={`rounded border px-4 py-3 text-left ${kind === m.id ? "border-slate-600 bg-slate-100" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+            className="model-tab"
           >
-            <span className="block font-medium">{m.name}</span>
-            <span className="mt-1 block text-sm text-slate-600">
-              {m.description}
+            <ModelIcon kind={m.id} />
+            <span>
+              <span className="block font-medium">{m.name}</span>
+              <span className="model-description mt-1 block text-xs leading-5">
+                {m.description}
+              </span>
             </span>
           </button>
         ))}

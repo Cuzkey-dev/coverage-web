@@ -16,7 +16,7 @@ function Equation({
     <div
       role="math"
       aria-label={label}
-      className="my-4 overflow-x-auto bg-slate-50 p-4 font-serif text-lg leading-loose"
+      className="motion-equation my-4 overflow-x-auto p-4 font-serif text-lg leading-loose"
     >
       {children}
     </div>
@@ -24,31 +24,32 @@ function Equation({
 }
 export default function MotionPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-8 text-slate-800 sm:px-6">
-      <header className="space-y-3">
-        <h1 className="text-2xl font-semibold sm:text-3xl">
-          時変重要度による被覆制御
-        </h1>
-        <p className="max-w-3xl leading-7 text-slate-600">
-          入力画像の変化に合わせて重要度関数を更新し、ロボット群の配置を計算します。鳥・風車・顔の3種類について、入力画像、抽出した輪郭、ロボットの動きを比較できます。
+    <main className="motion-page mx-auto w-full max-w-6xl px-5 pb-16 text-slate-800 sm:px-6">
+      <header className="motion-intro">
+        <p className="motion-eyebrow">画像から考えるロボットの配置</p>
+        <h1>時変重要度による被覆制御</h1>
+        <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+          画像が変わると、ロボットの配置はどう変わるでしょうか。
+          <br className="hidden sm:block" />
+          鳥・風車・顔を例に、入力画像から輪郭を抽出し、240台のロボットが追従するまでを見比べます。
         </p>
-        <a
-          href="#how-it-works"
-          className="inline-block text-sm text-slate-700 underline underline-offset-4"
-        >
-          計算方法と数式
+        <a href="#how-it-works" className="motion-text-link">
+          計算方法と数式 <span aria-hidden="true">↗</span>
         </a>
       </header>
       <MotionGallery />
       <section
         id="how-it-works"
-        className="scroll-mt-6 space-y-6 border-t border-slate-200 pt-8"
+        className="motion-method scroll-mt-8 space-y-6"
       >
-        <h2 className="text-xl font-semibold">計算方法</h2>
+        <div className="method-heading">
+          <span aria-hidden="true">解説</span>
+          <h2 className="text-2xl font-semibold">計算方法</h2>
+        </div>
         <p className="max-w-3xl leading-7">
           各時刻の入力画像から輪郭を抽出し、輪郭付近の重要度を高くします。各ロボットは担当領域の重み付き重心へ向かいます。以下では、この処理を一般的な被覆制御の式で説明します。
         </p>
-        <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+        <div className="method-grid grid gap-x-10 gap-y-8 md:grid-cols-2">
           <article className="min-w-0">
             <h3 className="font-semibold">入力画像から重要度関数を求める</h3>
             <Equation label="入力画像Iから輪郭Eを抽出し、時変重要度ファイを求める。">

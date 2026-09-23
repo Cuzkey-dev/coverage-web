@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
+  --background: #f7f8f5;
   color-scheme: light;
   --foreground: #171717;
 }
@@ -17,5 +17,248 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+}
+
+::selection {
+  background: #d6e8e4;
+}
+button,
+a,
+input,
+select {
+  outline-offset: 4px;
+}
+button,
+select,
+input[type="checkbox"] {
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid #326b70;
+}
+.site-header {
+  border-bottom: 1px solid #dfe5df;
+  background: #f7f8f5;
+}
+.motion-intro {
+  padding: 48px 0 32px;
+}
+.motion-eyebrow {
+  color: #326b70;
+  font-size: 12px;
+  letter-spacing: 0.13em;
+  margin-bottom: 15px;
+}
+.motion-intro h1 {
+  font-size: clamp(1.65rem, 3.3vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+.motion-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  color: #326b70;
+  font-size: 13px;
+  padding: 12px 0 4px;
+  border-bottom: 1px solid #a4bebc;
+}
+.motion-text-link:hover {
+  border-color: #326b70;
+}
+.model-tabs {
+  margin-bottom: 18px;
+}
+.model-tab {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-align: left;
+  padding: 16px 19px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #596668;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.model-tab:hover {
+  background: #eef2ee;
+}
+.model-tab[aria-pressed="true"] {
+  background: #e7efea;
+  border-color: #b8cdca;
+  color: #24595d;
+}
+.model-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.model-description {
+  color: #5b6b6a;
+}
+.motion-player {
+  background: #fff;
+  border: 1px solid #dce4df;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px #223e3d05;
+}
+.motion-figures {
+  padding: 26px 28px 22px;
+}
+.motion-figures figcaption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.step-number {
+  color: #326b70;
+  font:
+    11px var(--font-geist-mono),
+    monospace;
+  letter-spacing: 0.02em;
+  background: #eff5f1;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.flow-arrow {
+  margin-left: auto;
+  color: #92aaa7;
+  font-size: 20px;
+  font-weight: 400;
+}
+.motion-image {
+  margin: 10px 0;
+}
+.motion-figures figure > p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.motion-controls {
+  background: #f4f7f4;
+  border-top: 1px solid #e2e9e3;
+  padding: 20px 28px;
+}
+.motion-button {
+  border: 1px solid #cdd9d8;
+  border-radius: 7px;
+  background: white;
+  padding: 9px 15px;
+  font-size: 13px;
+}
+.motion-button:hover {
+  background: #e6eeeb;
+}
+.motion-play {
+  background: #326b70;
+  color: white;
+  border-color: #326b70;
+}
+.motion-play:hover {
+  background: #25575c;
+}
+.motion-controls input[type="checkbox"] {
+  accent-color: #326b70;
+  width: 15px;
+  height: 15px;
+}
+.motion-method {
+  margin-top: 64px;
+  border-top: 1px solid #d5dfd9;
+  padding-top: 32px;
+}
+.method-heading {
+  display: flex;
+  gap: 24px;
+  align-items: baseline;
+}
+.method-heading > span {
+  font-size: 12px;
+  color: #326b70;
+}
+.method-grid {
+  counter-reset: method;
+  padding-top: 16px;
+}
+.method-grid article {
+  counter-increment: method;
+  padding-top: 22px;
+  border-top: 1px solid #dfe6df;
+}
+.method-grid h3::before {
+  content: counter(method, decimal-leading-zero);
+  color: #638883;
+  font:
+    12px var(--font-geist-mono),
+    monospace;
+  margin-right: 12px;
+}
+.motion-equation {
+  background: #edf2ed;
+  border-left: 2px solid #9bb9ae;
+  border-radius: 0 5px 5px 0;
+}
+.motion-method article p {
+  color: #52605f;
+}
+@media (max-width: 767px) {
+  .motion-intro {
+    padding-top: 32px;
+  }
+  .model-tab {
+    padding: 12px 5px;
+    gap: 8px;
+    flex-direction: column;
+    text-align: center;
+    font-size: 12px;
+  }
+  .model-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .model-description {
+    display: none;
+  }
+  .motion-figures {
+    padding: 20px;
+  }
+  .motion-figures figure {
+    max-width: 380px;
+    width: 100%;
+    margin: auto;
+  }
+  .motion-figures figure + figure {
+    border-top: 1px solid #e6ece6;
+    padding-top: 22px;
+  }
+  .flow-arrow {
+    transform: rotate(90deg);
+  }
+  .motion-controls {
+    padding: 20px;
+  }
+  .motion-controls label {
+    font-size: 12px;
+  }
+  .motion-method {
+    margin-top: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .model-tab {
+    transition: none;
+  }
 }

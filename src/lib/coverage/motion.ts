@@ -2,17 +2,17 @@ export const motionModels = [
   {
     id: "bird",
     name: "鳥の羽ばたき",
-    description: "横から見た鳥の翼が上下に動きます。",
+    description: "翼を広げて羽ばたく、横向きの鳥。",
   },
   {
     id: "windmill",
     name: "風車の回転",
-    description: "支柱と軸は固定し、羽根が回転します。",
+    description: "軸を中心に回転する4枚の羽根。",
   },
   {
     id: "face",
     name: "顔の表情",
-    description: "笑顔、真顔、不機嫌な顔へ変化します。",
+    description: "目・眉・口元で変わる表情。",
   },
 ] as const;
 export type MotionKind = (typeof motionModels)[number]["id"];
